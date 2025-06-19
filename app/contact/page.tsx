@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Instagram, Phone, Mail, MapPin, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TiktokIcon } from "@/components/tiktok-icon"
+import { AnimatedSection } from "@/components/ui/animated-section"
 
 export default function Contact() {
   const address = "Haile Selassie Ave, Blantyre, Malawi"
@@ -10,7 +11,7 @@ export default function Contact() {
   return (
     <div>
       {/* Page Header */}
-      <section className="bg-black text-white py-20">
+      <AnimatedSection className="bg-black text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif mb-4">Contact Us</h1>
           <p className="text-gray-300 max-w-2xl mx-auto">
@@ -18,10 +19,10 @@ export default function Contact() {
             appointment.
           </p>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Contact Information */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="grid md:grid-cols-2 gap-12">
@@ -90,7 +91,7 @@ export default function Contact() {
                 <h2 className="text-3xl font-serif mb-8">Quick Connect</h2>
 
                 <div className="grid gap-4">
-                  <Card className="border-none shadow-soft">
+                  <Card className="border-none shadow-soft transition-all duration-300 hover:shadow-glow hover:-translate-y-1">
                     <CardContent className="p-6">
                       <a
                         href="https://wa.me/265997940419"
@@ -107,7 +108,7 @@ export default function Contact() {
                     </CardContent>
                   </Card>
 
-                  <Card className="border-none shadow-soft">
+                  <Card className="border-none shadow-soft transition-all duration-300 hover:shadow-glow hover:-translate-y-1">
                     <CardContent className="p-6">
                       <a href="tel:+265997940419" className="flex items-center justify-between">
                         <div className="flex items-center">
@@ -119,7 +120,7 @@ export default function Contact() {
                     </CardContent>
                   </Card>
 
-                  <Card className="border-none shadow-soft">
+                  <Card className="border-none shadow-soft transition-all duration-300 hover:shadow-glow hover:-translate-y-1">
                     <CardContent className="p-6">
                       <a href="mailto:lambatlauryn@gmail.com" className="flex items-center justify-between">
                         <div className="flex items-center">
@@ -157,10 +158,10 @@ export default function Contact() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Map Section */}
-      <section className="py-20 bg-nude-light">
+      <AnimatedSection className="py-20 bg-nude-light" delay={0.4}>
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center">
             <h2 className="text-3xl font-serif mb-8">Find Us</h2>
@@ -180,7 +181,7 @@ export default function Contact() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
     </div>
   )
 }

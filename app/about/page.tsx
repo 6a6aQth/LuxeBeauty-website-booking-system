@@ -1,22 +1,23 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { AnimatedSection } from "@/components/ui/animated-section"
 
 export default function About() {
   return (
     <div>
       {/* Page Header */}
-      <section className="bg-black text-white py-20">
+      <AnimatedSection className="bg-black text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif mb-4">About Us</h1>
+          <h1 className="text-4xl md:text-5xl font-serif mb-4">About Our Studio</h1>
           <p className="text-gray-300 max-w-2xl mx-auto">
-            Discover the story behind Lauryn Luxe Beauty Studio and our commitment to excellence.
+            Where luxury, precision, and personalized care converge to create an unforgettable beauty experience.
           </p>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* About Lauryn Section */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -49,10 +50,10 @@ export default function About() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Studio Philosophy */}
-      <section className="py-20 bg-nude-light">
+      <AnimatedSection className="py-20 bg-nude-light" delay={0.4}>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-serif mb-8 text-center">Studio Philosophy</h2>
@@ -102,10 +103,10 @@ export default function About() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Studio Images */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white" delay={0.6}>
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-serif mb-12 text-center">Our Studio</h2>
 
@@ -121,10 +122,10 @@ export default function About() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* CTA Section */}
-      <section className="py-20 bg-black text-white">
+      <AnimatedSection className="py-20 bg-black text-white" delay={0.8}>
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-serif mb-6">Experience Luxury Beauty</h2>
           <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -137,7 +138,7 @@ export default function About() {
             </Button>
           </Link>
         </div>
-      </section>
+      </AnimatedSection>
     </div>
   )
 }

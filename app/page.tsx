@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Instagram } from "lucide-react"
 import { TiktokIcon } from "@/components/tiktok-icon"
+import { AnimatedSection } from "@/components/ui/animated-section"
+import NewsletterSignup from "@/components/newsletter-signup"
 
 export default function Home() {
   return (
@@ -32,7 +34,7 @@ export default function Home() {
       </section>
 
       {/* About Studio Section */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
@@ -62,10 +64,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Services Preview */}
-      <section className="py-20 bg-nude-light">
+      <AnimatedSection className="py-20 bg-nude-light">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-serif mb-4">Our Services</h2>
@@ -93,9 +95,17 @@ export default function Home() {
                 description: "Express yourself with our creative and elegant nail art designs.",
               },
             ].map((service, index) => (
-              <Card key={index} className="border-none shadow-soft overflow-hidden bg-white">
-                <div className="aspect-[4/3] relative">
-                  <Image src={service.image} alt={service.title} fill className="object-cover" />
+              <Card
+                key={index}
+                className="border-none shadow-soft overflow-hidden bg-white transition-all duration-300 hover:shadow-glow hover:-translate-y-2"
+              >
+                <div className="aspect-[4/3] relative overflow-hidden">
+                  <Image
+                    src={service.image}
+                    alt={service.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                 </div>
                 <CardContent className="p-6">
                   <h3 className="text-xl font-serif mb-2">{service.title}</h3>
@@ -114,10 +124,10 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* About Lauryn */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -147,10 +157,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Instagram Feed */}
-      <section className="py-20 bg-gradient-to-r from-pink-light to-white">
+      <AnimatedSection className="py-20 bg-gradient-to-r from-pink-light to-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-serif mb-4">Follow Our Journey</h2>
@@ -179,7 +189,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               "/IMG_5656.png",
-              "/IMG_5922.png", 
+              "/IMG_5922.png",
               "/IMG_6004.png",
               "/IMG_6056.png",
               "/IMG_6721.png",
@@ -187,21 +197,39 @@ export default function Home() {
               "/IMG_9067.png",
               "/IMG_9745.png"
             ].map((image, index) => (
-              <div key={index} className="aspect-square relative overflow-hidden">
+              <div key={index} className="aspect-square relative overflow-hidden rounded-lg group">
                 <Image
                   src={image}
                   alt={`Instagram post ${index + 1}`}
                   fill
-                  className="object-cover hover:scale-105 transition-transform duration-300"
+                  className="object-cover group-hover:scale-110 transition-transform duration-300"
                 />
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Instagram className="h-8 w-8 text-white" />
+                </div>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </AnimatedSection>
+
+      {/* Newsletter Section */}
+      <AnimatedSection className="py-20 bg-nude-light">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-3xl font-serif mb-4">Join Our Newsletter</h2>
+            <p className="text-gray-700 mb-8">
+              Stay up to date with the latest news, exclusive offers, and beauty tips from our experts.
+            </p>
+            <div className="max-w-md mx-auto">
+              <NewsletterSignup />
+            </div>
+          </div>
+        </div>
+      </AnimatedSection>
 
       {/* CTA Section */}
-      <section className="py-20 bg-black text-white">
+      <AnimatedSection className="py-20 bg-black text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-serif mb-6">Ready for Your Luxe Experience?</h2>
           <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -214,7 +242,7 @@ export default function Home() {
             </Button>
           </Link>
         </div>
-      </section>
+      </AnimatedSection>
     </div>
   )
 }

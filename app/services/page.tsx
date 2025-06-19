@@ -13,6 +13,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChevronDown } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { AnimatedSection } from "@/components/ui/animated-section"
 
 const services = {
   manicure: [
@@ -56,12 +65,11 @@ const serviceImages = {
 }
 
 export default function Services() {
-  const [activeTab, setActiveTab] = useState("manicure")
+  const isMobile = useIsMobile()
 
   return (
     <div>
-      {/* Page Header */}
-      <section className="bg-black text-white py-20">
+      <AnimatedSection className="bg-black text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif mb-4">Our Services</h1>
           <p className="text-gray-300 max-w-2xl mx-auto">
@@ -69,46 +77,43 @@ export default function Services() {
             using only the finest products.
           </p>
         </div>
-      </section>
+      </AnimatedSection>
 
-      {/* Services Tabs */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-nude-light" delay={0.2}>
         <div className="container mx-auto px-4">
-          <div className="md:hidden mb-8">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full justify-between">
-                  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-full">
+          <Tabs defaultValue="manicure" className="w-full">
+            {isMobile ? (
+              <Select onValueChange={(value) => document.getElementById(`trigger-${value}`)?.click()}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a service category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(services).map((category) => (
+                    <SelectItem key={category} value={category} className="capitalize">
+                      {category.replace("-", " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <TabsList className="grid w-full grid-cols-5 bg-white/50 border">
                 {Object.keys(services).map((category) => (
-                  <DropdownMenuItem key={category} onSelect={() => setActiveTab(category)}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </DropdownMenuItem>
+                  <TabsTrigger 
+                    key={category} 
+                    value={category}
+                    className="capitalize data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-md rounded-md transition-all duration-300"
+                  >
+                    {category.replace("-", " ")}
+                  </TabsTrigger>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              </TabsList>
+            )}
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
-              <TabsTrigger value="manicure">Manicure</TabsTrigger>
-              <TabsTrigger value="pedicure">Pedicure</TabsTrigger>
-              <TabsTrigger value="refills">Refills</TabsTrigger>
-              <TabsTrigger value="nailArt">Nail Art</TabsTrigger>
-              <TabsTrigger value="soakOff">Soak Off</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div>
-            {Object.keys(services).map((category) => {
-              if (category !== activeTab) return null
-              return (
-                <div key={category} className="mt-6">
-                  <div className="block md:grid md:grid-cols-2 md:gap-8">
-                    <div className="mb-8 md:mb-0">
+            <div className="mt-8">
+              {Object.keys(services).map((category) => (
+                <TabsContent key={category} value={category}>
+                  <div className="grid md:grid-cols-2 gap-12 items-start">
+                    <div className="sticky top-24">
                       <div className="aspect-square relative overflow-hidden rounded-lg shadow-glow mb-6">
                         <Image
                           src={serviceImages[category as keyof typeof serviceImages]}
@@ -117,44 +122,40 @@ export default function Services() {
                           className="object-cover"
                         />
                       </div>
-                      <p className="text-gray-700">
+                      <p className="text-gray-700 text-sm">
                         {category === "manicure" &&
                           "Our manicure services are designed to enhance the natural beauty of your hands while ensuring nail health and longevity."}
                         {category === "pedicure" &&
                           "Pamper your feet with our luxurious pedicure treatments that combine relaxation with expert nail care."}
                         {category === "refills" &&
                           "Maintain your beautiful nails with our professional refill services, extending the life of your manicure."}
-                        {category === "nailArt" &&
+                        {category === "nail-art" &&
                           "Express your personality with our creative nail art options, from subtle elegance to bold statements."}
-                        {category === "soakOff" &&
+                        {category === "soak-off" &&
                           "Our gentle soak-off services ensure safe removal of previous applications without damaging your natural nails."}
                       </p>
                     </div>
 
                     <div>
-                      <h2 className="text-3xl font-serif mb-6 capitalize">{category} Services</h2>
+                      <h2 className="text-3xl font-serif mb-6 capitalize">{category.replace("-", " ")} Services</h2>
                       <div className="space-y-4">
                         {services[category as keyof typeof services].map((service, index) => (
-                          <Card key={index} className="border-none shadow-soft">
-                            <CardContent className="p-6 flex justify-between items-center">
-                              <div>
-                                <h3 className="font-medium">{service.name}</h3>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-serif">MK {service.price}</p>
-                              </div>
+                          <Card key={index} className="border-none shadow-soft bg-white/70">
+                            <CardContent className="p-4 flex justify-between items-center">
+                              <h3 className="font-medium">{service.name}</h3>
+                              <p className="font-serif text-gray-800">MK {service.price}</p>
                             </CardContent>
                           </Card>
                         ))}
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                </TabsContent>
+              ))}
+            </div>
+          </Tabs>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Additional Information */}
       <section className="py-20 bg-nude-light">

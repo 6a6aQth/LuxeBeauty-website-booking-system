@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { getSlotsForDate, formatTime } from "@/lib/time-slots"
 import { Checkbox } from "@/components/ui/checkbox"
 import { StudioPolicies } from "@/components/studio-policies"
+import { AnimatedSection } from "@/components/ui/animated-section"
 
 // Helper to get tomorrow's date in yyyy-mm-dd format
 function getMinBookingDate() {
@@ -199,17 +200,17 @@ export default function Booking() {
   return (
     <div>
       {/* Page Header */}
-      <section className="bg-black text-white py-20">
+      <AnimatedSection className="bg-black text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif mb-4">Book an Appointment</h1>
           <p className="text-gray-300 max-w-2xl mx-auto">
             Schedule your visit to Lauryn Luxe Beauty Studio and treat yourself to a luxurious beauty experience.
           </p>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Booking Form or Payment Step */}
-      <section className="py-20 bg-white">
+      <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             {step === 'form' && (
@@ -433,10 +434,10 @@ export default function Booking() {
             </Card>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Additional Information */}
-      <section className="py-20 bg-nude-light">
+      <AnimatedSection className="py-20 bg-nude-light" delay={0.4}>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-serif mb-8 text-center">Booking Information</h2>
@@ -490,7 +491,7 @@ export default function Booking() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
     </div>
   )
 }

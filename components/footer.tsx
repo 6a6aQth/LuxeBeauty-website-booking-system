@@ -3,7 +3,6 @@ import { Instagram, Facebook, Phone, Mail, MapPin, MapPinIcon, PhoneIcon, MailIc
 import Logo from "@/components/logo"
 import { TiktokIcon } from "@/components/tiktok-icon"
 
-
 export default function Footer() {
   const address = "Haile Selassie Ave, Blantyre."
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
