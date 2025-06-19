@@ -66,6 +66,7 @@ const serviceImages = {
 
 export default function Services() {
   const isMobile = useIsMobile()
+  const [activeTab, setActiveTab] = useState("manicure")
 
   return (
     <div>
@@ -81,10 +82,10 @@ export default function Services() {
 
       <AnimatedSection className="py-20 bg-nude-light" delay={0.2}>
         <div className="container mx-auto px-4">
-          <Tabs defaultValue="manicure" className="w-full">
-            {isMobile ? (
-              <Select onValueChange={(value) => document.getElementById(`trigger-${value}`)?.click()}>
-                <SelectTrigger className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            {isMobile && (
+              <Select onValueChange={setActiveTab} value={activeTab}>
+                <SelectTrigger className="w-full mb-4">
                   <SelectValue placeholder="Select a service category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -95,19 +96,19 @@ export default function Services() {
                   ))}
                 </SelectContent>
               </Select>
-            ) : (
-              <TabsList className="grid w-full grid-cols-5 bg-white/50 border">
-                {Object.keys(services).map((category) => (
-                  <TabsTrigger 
-                    key={category} 
-                    value={category}
-                    className="capitalize data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-md rounded-md transition-all duration-300"
-                  >
-                    {category.replace("-", " ")}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
             )}
+
+            <TabsList className={`grid w-full grid-cols-5 bg-white/50 border ${isMobile ? "hidden" : ""}`}>
+              {Object.keys(services).map((category) => (
+                <TabsTrigger
+                  key={category}
+                  value={category}
+                  className="capitalize data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-md rounded-md transition-all duration-300"
+                >
+                  {category.replace("-", " ")}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
             <div className="mt-8">
               {Object.keys(services).map((category) => (

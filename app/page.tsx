@@ -164,7 +164,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-serif mb-4">Follow Our Journey</h2>
-            <div className="flex items-center justify-center gap-6 text-gray-700">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-gray-700">
               <a
                 href="https://www.instagram.com/laurynluxebeautystudio"
                 target="_blank"
