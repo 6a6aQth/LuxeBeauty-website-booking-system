@@ -6,6 +6,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import WhatsAppButton from "@/components/whatsapp-button"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -43,6 +44,7 @@ export default function RootLayout({
             <Footer />
             <WhatsAppButton />
           </div>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +21,8 @@ import { getSlotsForDate, formatTime } from "@/lib/time-slots"
 import { Checkbox } from "@/components/ui/checkbox"
 import { StudioPolicies } from "@/components/studio-policies"
 import { AnimatedSection } from "@/components/ui/animated-section"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import BookingStatus from "@/components/booking-status"
 
 // Helper to get tomorrow's date in yyyy-mm-dd format
 function getMinBookingDate() {
@@ -59,6 +61,16 @@ export default function Booking() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [unavailableSlots, setUnavailableSlots] = useState<Record<string, string[]>>({})
   const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
+  const [bookingStatus, setBookingStatus] = useState<'processing' | 'received' | 'generating' | 'complete' | 'idle'>('idle');
+  const bookingFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (step === 'payment') {
+      setTimeout(() => {
+        bookingFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100); // A small delay to ensure the element is rendered
+    }
+  }, [step]);
 
   useEffect(() => {
     // Fetch manually set unavailable slots
@@ -160,27 +172,33 @@ export default function Booking() {
 
   const handlePayment = () => {
     setIsPaying(true)
+    setBookingStatus('processing');
+
     setTimeout(() => {
-      setIsPaying(false)
-      toast({
-        title: "Booking Fee Paid",
-        description: "Your booking fee has been received. Generating your ticket...",
-      })
-      // Save booking details to localStorage
-      const ticketId = `LLB-${formData.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
-      const bookingDetails = {
-        ...formData,
-        fee: "K10,000 (Paid)",
-        ticketId,
-        createdAt: new Date().toISOString(),
-      }
-      localStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails))
-      // Append to bookings array
-      const bookings = JSON.parse(localStorage.getItem('llb-bookings') || '[]')
-      bookings.push(bookingDetails)
-      localStorage.setItem('llb-bookings', JSON.stringify(bookings))
-      router.push("/booking/confirmation")
-    }, 2000)
+      setBookingStatus('received');
+      setTimeout(() => {
+        setBookingStatus('generating');
+        
+        // Save booking details to localStorage
+        const ticketId = `LLB-${formData.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
+        const bookingDetails = {
+          ...formData,
+          fee: "K10,000 (Paid)",
+          ticketId,
+          createdAt: new Date().toISOString(),
+        }
+        localStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails))
+        const bookings = JSON.parse(localStorage.getItem('llb-bookings') || '[]')
+        bookings.push(bookingDetails)
+        localStorage.setItem('llb-bookings', JSON.stringify(bookings))
+        
+        setTimeout(() => {
+            setBookingStatus('complete');
+            router.push("/booking/confirmation");
+        }, 1500); // Wait before redirect
+
+      }, 2000) // "Generating Ticket" duration
+    }, 2000) // "Payment Received" duration
   }
 
   const serviceOptions = [
@@ -199,6 +217,16 @@ export default function Booking() {
 
   return (
     <div>
+      <Dialog open={bookingStatus !== 'idle'} >
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-center font-serif text-2xl mb-4">Securing Your Appointment</DialogTitle>
+          </DialogHeader>
+          <div className="py-8">
+             <BookingStatus status={bookingStatus} />
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Page Header */}
       <AnimatedSection className="bg-black text-white py-20">
         <div className="container mx-auto px-4 text-center">
@@ -212,7 +240,7 @@ export default function Booking() {
       {/* Booking Form or Payment Step */}
       <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto" ref={bookingFormRef}>
             {step === 'form' && (
               <div className="mb-8 p-6 bg-pink-50/50 rounded-lg border border-pink-200/50">
                 <h3 className="text-xl font-serif text-center mb-4">Business Hours</h3>

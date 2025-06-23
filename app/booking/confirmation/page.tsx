@@ -10,6 +10,7 @@ import { formatTime } from "@/lib/time-slots"
 export default function BookingConfirmation() {
   const ticketRef = useRef<HTMLDivElement>(null)
   const [bookingDetails, setBookingDetails] = useState<any>(null)
+  const downloadButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const data = localStorage.getItem('lauryn-luxe-booking')
@@ -17,6 +18,15 @@ export default function BookingConfirmation() {
       setBookingDetails(JSON.parse(data))
     }
   }, [])
+
+  useEffect(() => {
+    // Scroll to the download button on page load
+    if (bookingDetails && downloadButtonRef.current) {
+       setTimeout(() => {
+        downloadButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500); // Delay to allow page to render fully
+    }
+  }, [bookingDetails]);
 
   const handleDownload = async () => {
     if (ticketRef.current) {
@@ -32,10 +42,11 @@ export default function BookingConfirmation() {
     <div className="min-h-[70vh] flex items-center justify-center py-20 bg-gradient-to-br from-pink-50 to-nude-light">
       <div className="container mx-auto px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-3xl font-serif mb-4">Booking Request Received</h1>
+          <h1 className="text-3xl font-serif mb-2">Booking Request Received</h1>
+          <p className="text-gray-600 mb-8 text-lg">Please download your ticket below.</p>
 
           {/* Elegant Ticket Section */}
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-8" ref={downloadButtonRef}>
             <div
               ref={ticketRef}
               className="relative bg-white border-2 border-pink-200 rounded-2xl shadow-2xl px-8 py-12 w-full max-w-xl flex flex-col items-center justify-center overflow-hidden"

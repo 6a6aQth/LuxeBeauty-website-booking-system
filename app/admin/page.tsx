@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { format, parseISO, isValid } from 'date-fns'
+import { format, parseISO, isValid, startOfWeek, endOfWeek, isWithinInterval, addDays } from 'date-fns'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { Calendar } from "@/components/ui/calendar"
@@ -20,6 +20,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { getSlotsForDate, formatTime } from "@/lib/time-slots"
 import Logo from "@/components/logo";
+import NewsletterForm from '@/components/newsletter-form';
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 
 const ADMIN_PASSWORD = 'luxe' // Change this to a secure password
 
@@ -47,6 +52,8 @@ const serviceOptions = [
   { value: "refill", label: "Refill" },
 ];
 
+const serviceLabel = (value: string) => serviceOptions.find(s => s.value === value)?.label || value;
+
 export default function AdminPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -56,6 +63,8 @@ export default function AdminPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [isManageDateOpen, setIsManageDateOpen] = useState(false)
   const [managedSlots, setManagedSlots] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAll, setShowAll] = useState(false); // To toggle between all and upcoming
 
   useEffect(() => {
     if (sessionStorage.getItem("llb_admin_auth") === "true") {
@@ -86,6 +95,79 @@ export default function AdminPage() {
       }
     }
   }, [isAuthenticated]);
+
+  const filteredBookings = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let bookingsToShow = bookings;
+
+    // Filter for upcoming bookings if showAll is false
+    if (!showAll) {
+      bookingsToShow = bookings.filter(booking => {
+        try {
+          const bookingDate = parseISO(booking.date);
+          return isValid(bookingDate) && bookingDate >= today;
+        } catch {
+          return false;
+        }
+      });
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      bookingsToShow = bookingsToShow.filter(booking => {
+        const servicesString = Array.isArray(booking.services) ? booking.services.map(s => serviceLabel(s)).join(' ') : '';
+        return (
+          booking.name.toLowerCase().includes(searchLower) ||
+          booking.phone.toLowerCase().includes(searchLower) ||
+          (booking.email && booking.email.toLowerCase().includes(searchLower)) ||
+          servicesString.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Sort the bookings by date
+    return bookingsToShow.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [bookings, searchTerm, showAll]);
+  
+  const weeklyCapacity = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const sevenDaysFromNow = addDays(today, 7);
+
+    const bookingsInNext7Days = bookings.filter(booking => {
+      try {
+        const bookingDate = parseISO(booking.date);
+        return isValid(bookingDate) && isWithinInterval(bookingDate, { start: today, end: sevenDaysFromNow });
+      } catch {
+        return false;
+      }
+    });
+
+    let totalAvailableSlots = 0;
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      const dateStr = format(date, "yyyy-MM-dd");
+      const daySlots = getSlotsForDate(date);
+      const unavailable = unavailableSlots[dateStr] || [];
+      const availableCount = daySlots.filter(slot => !unavailable.includes(slot)).length;
+      totalAvailableSlots += availableCount;
+    }
+
+    if (totalAvailableSlots === 0) {
+      return { count: bookingsInNext7Days.length, percentage: 100 };
+    }
+
+    const percentage = Math.min((bookingsInNext7Days.length / totalAvailableSlots) * 100, 100);
+
+    return {
+      count: bookingsInNext7Days.length,
+      percentage: percentage,
+    };
+  }, [bookings, unavailableSlots]);
 
   const availableSlotsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
@@ -149,8 +231,6 @@ export default function AdminPage() {
     const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
     return bookings.filter(b => b.date === selectedDateStr);
   }, [bookings, selectedDate]);
-
-  const serviceLabel = (value: string) => serviceOptions.find(s => s.value === value)?.label || value;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -239,25 +319,54 @@ export default function AdminPage() {
 
             {/* Bookings List Section */}
             <div className="md:col-span-2">
-              <h2 className="text-xl font-serif mb-4">
-                Upcoming Bookings
-                <span className="text-base text-gray-400 font-normal ml-2">({bookings.filter(b => new Date(b.date) >= new Date()).length})</span>
-              </h2>
+              <div className="mb-6 bg-gray-100 p-4 rounded-xl border border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                   <h3 className="text-sm font-semibold text-gray-800">Next 7 Days Capacity</h3>
+                   <span className="text-sm font-bold text-gray-600">{weeklyCapacity.count} Bookings</span>
+                </div>
+                <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-pink-400" />
+                <p className="text-xs text-gray-500 mt-1 text-right">{Math.round(weeklyCapacity.percentage)}% full</p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+                  <h2 className="text-xl font-serif">
+                    {showAll ? "All Bookings" : "Upcoming Bookings"}
+                    <span className="text-base text-gray-400 font-normal ml-2">({filteredBookings.length})</span>
+                  </h2>
+                  <div className="flex items-center gap-4">
+                     <Input
+                        type="text"
+                        placeholder="Search bookings..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="max-w-xs bg-white focus:ring-pink-500"
+                     />
+                     <div className="flex items-center space-x-2">
+                        <Switch
+                           id="show-all"
+                           checked={showAll}
+                           onCheckedChange={setShowAll}
+                        />
+                        <Label htmlFor="show-all" className="text-sm whitespace-nowrap">Show Past</Label>
+                     </div>
+                  </div>
+              </div>
+
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {bookings.length === 0 ? (
-                  <div className="text-gray-400 italic">No bookings yet.</div>
+                {filteredBookings.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 italic">
+                    <p>No bookings found.</p>
+                    {searchTerm && <p className="text-sm">Try adjusting your search or filters.</p>}
+                  </div>
                 ) : (
-                  [...bookings]
-                    .filter(b => new Date(b.date) >= new Date())
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map((b, i) => (
-                    <div key={b.ticketId} className="bg-pink-50 border border-pink-200 rounded-xl shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
+                  filteredBookings.map(booking => (
+                    <div key={booking.ticketId} className="bg-pink-50 border border-pink-200 rounded-xl shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
                       <div className="flex-1">
-                        <div className="font-serif text-lg text-pink-700 mb-1">{b.name}</div>
-                        <div className="text-sm text-gray-700 mb-1"><span className="font-bold">Date:</span> {format(parseISO(b.date), "PPP")} &nbsp; <span className="font-bold">Time:</span> {formatTime(b.timeSlot)}</div>
-                        <div className="text-sm mb-1"><span className="font-bold">Services:</span><br />{Array.isArray(b.services) ? b.services.map((s: string) => serviceLabel(s)).join(", ") : ''}</div>
-                        <div className="text-sm mb-1"><span className="font-bold">Contact:</span><br />{b.phone}{b.email && <><br />{b.email}</>}</div>
-                        <div className="text-xs text-gray-400 mt-2">Booking ID: {b.ticketId}</div>
+                        <div className="font-serif text-lg text-pink-700 mb-1">{booking.name}</div>
+                        <div className="text-sm text-gray-700 mb-1"><span className="font-bold">Date:</span> {format(parseISO(booking.date), "PPP")} &nbsp; <span className="font-bold">Time:</span> {formatTime(booking.timeSlot)}</div>
+                        <div className="text-sm mb-1"><span className="font-bold">Services:</span><br />{Array.isArray(booking.services) ? booking.services.map((s: string) => serviceLabel(s)).join(", ") : ''}</div>
+                        <div className="text-sm mb-1"><span className="font-bold">Contact:</span><br />{booking.phone}{booking.email && <><br />{booking.email}</>}</div>
+                        <div className="text-xs text-gray-400 mt-2">Booking ID: {booking.ticketId}</div>
                       </div>
                     </div>
                   ))
@@ -265,6 +374,14 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+
+          <Separator className="my-8" />
+
+          {/* Newsletter Section */}
+          <div>
+            <NewsletterForm />
+          </div>
+
         </div>
       </main>
 
