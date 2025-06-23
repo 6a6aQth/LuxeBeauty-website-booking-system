@@ -17,6 +17,7 @@ export default function NewsletterForm() {
   const [content, setContent] = useState('');
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     const fetchSubscribers = async () => {
@@ -46,14 +47,38 @@ export default function NewsletterForm() {
     fetchSubscribers();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This is a placeholder for a real email sending service (e.g., Resend, SendGrid)
-    console.log("Sending newsletter:", { subject, content, subscribers });
-    toast({
-      title: "Newsletter Sent (Simulated)",
-      description: `The newsletter would be sent to ${subscribers.length} subscriber(s).`,
-    });
+    setIsSending(true);
+    
+    try {
+      const response = await fetch('/api/newsletter/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, content }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Newsletter Sent!",
+          description: "Your newsletter has been sent to your subscribers.",
+        });
+        setSubject('');
+        setContent('');
+      } else {
+        throw new Error(result.error || 'An unknown error occurred');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to Send",
+        description: error.message || "Could not send the newsletter. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (

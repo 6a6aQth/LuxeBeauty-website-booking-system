@@ -257,6 +257,16 @@ export default function Booking() {
         </div>
       </AnimatedSection>
 
+      {/* Loyalty Program Section */}
+      <AnimatedSection className="py-12 bg-pink-50/50">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-serif text-pink-800 mb-3">Our Loyalty Program</h2>
+          <p className="text-gray-700 max-w-xl mx-auto">
+            We cherish our regular clients! As a token of our appreciation, your <span className="font-bold">6th booking comes with a 30% discount</span>. Just our little way of saying thank you for your continued trust in us.
+          </p>
+        </div>
+      </AnimatedSection>
+
       {/* Booking Form or Payment Step */}
       <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">

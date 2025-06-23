@@ -69,6 +69,11 @@ export default function BookingConfirmation() {
                 </div>
                 {bookingDetails ? (
                   <div className="mx-auto max-w-md text-center text-black text-lg space-y-2" style={{fontFamily: 'Montserrat, sans-serif'}}>
+                    {bookingDetails.discountApplied && (
+                      <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800">
+                        <span className="font-bold">🎉 30% Loyalty Discount Applied! 🎉</span>
+                      </div>
+                    )}
                     <div><span className="font-bold">Name:</span> {bookingDetails.name}</div>
                     <div><span className="font-bold">Date:</span> {bookingDetails.date}</div>
                     <div><span className="font-bold">Time:</span> {formatTime(bookingDetails.timeSlot)}</div>

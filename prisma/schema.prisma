@@ -20,6 +20,7 @@ model Booking {
   services  String[]
   notes     String?
   ticketId  String   @unique
+  discountApplied  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

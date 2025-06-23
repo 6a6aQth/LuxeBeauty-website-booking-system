@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
+    // Loyalty Program Logic
+    const bookingCount = await prisma.booking.count({ where: { phone } });
+    const isDiscountBooking = (bookingCount + 1) % 6 === 0;
+    
     const ticketId = `LLB-${date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newBooking = await prisma.booking.create({
@@ -36,6 +40,7 @@ export async function POST(req: NextRequest) {
         date,
         notes,
         ticketId,
+        discountApplied: isDiscountBooking,
       },
     });
 
