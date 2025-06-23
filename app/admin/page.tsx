@@ -29,6 +29,7 @@ import { Progress } from "@/components/ui/progress";
 const ADMIN_PASSWORD = 'luxe' // Change this to a secure password
 
 interface Booking {
+  id: string;
   ticketId: string;
   name: string;
   date: string;
@@ -75,25 +76,33 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAuthenticated) return
 
-    const bookingsData = localStorage.getItem('llb-bookings')
-    if (bookingsData) {
+    const fetchAdminData = async () => {
       try {
-        setBookings(JSON.parse(bookingsData))
-      } catch (e) {
-        console.error("Failed to parse bookings", e)
-        setBookings([])
-      }
-    }
+        const [bookingsRes, unavailableRes] = await Promise.all([
+          fetch('/api/bookings'),
+          fetch('/api/unavailable-dates')
+        ]);
 
-    const unavailableData = localStorage.getItem('llb-unavailable-dates');
-    if (unavailableData) {
-      try {
-        setUnavailableSlots(JSON.parse(unavailableData));
-      } catch (e) {
-        console.error("Failed to parse unavailable dates", e);
-        setUnavailableSlots({});
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData);
+        } else {
+          toast({ title: "Error", description: "Failed to fetch bookings.", variant: "destructive" });
+        }
+
+        if (unavailableRes.ok) {
+          const unavailableData = await unavailableRes.json();
+          setUnavailableSlots(unavailableData);
+        } else {
+           toast({ title: "Error", description: "Failed to fetch unavailable dates.", variant: "destructive" });
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin data", error);
+        toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
       }
-    }
+    };
+
+    fetchAdminData();
   }, [isAuthenticated]);
 
   const filteredBookings = useMemo(() => {
@@ -185,7 +194,7 @@ export default function AdminPage() {
     setIsManageDateOpen(true);
   };
 
-  const handleSaveAvailability = () => {
+  const handleSaveAvailability = async () => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     const newUnavailableSlots = { ...unavailableSlots };
@@ -196,13 +205,25 @@ export default function AdminPage() {
       delete newUnavailableSlots[dateStr];
     }
     
-    setUnavailableSlots(newUnavailableSlots);
-    localStorage.setItem('llb-unavailable-dates', JSON.stringify(newUnavailableSlots));
-    toast({
-      title: "Availability Updated",
-      description: `Availability for ${format(selectedDate, "PPP")} has been updated.`,
-    });
-    setIsManageDateOpen(false);
+    try {
+      const response = await fetch('/api/unavailable-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr, slots: managedSlots }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save availability');
+      
+      setUnavailableSlots(newUnavailableSlots);
+      toast({
+        title: "Availability Updated",
+        description: `Availability for ${format(selectedDate, "PPP")} has been updated.`,
+      });
+      setIsManageDateOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Could not update availability.", variant: "destructive" });
+    }
   };
 
   const bookedDays = useMemo(() => {

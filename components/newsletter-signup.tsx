@@ -9,7 +9,7 @@ export default function NewsletterSignup() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast({
@@ -22,27 +22,47 @@ export default function NewsletterSignup() {
 
     setIsSubmitting(true);
 
-    // Simulate API call and save to localStorage
-    setTimeout(() => {
-      const subscriptions = JSON.parse(localStorage.getItem('llb-newsletter-subs') || '[]');
-      if (subscriptions.includes(email)) {
-        toast({
-          title: "Already Subscribed",
-          description: "This email address is already on our list.",
-          variant: "default",
-        });
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (response.status === 201) {
+           toast({
+            title: "Subscribed!",
+            description: "Thank you for joining our newsletter.",
+          });
+        } else {
+           toast({
+            title: "Already Subscribed",
+            description: "This email address is already on our list.",
+            variant: "default",
+          });
+        }
+        setEmail('');
       } else {
-        subscriptions.push(email);
-        localStorage.setItem('llb-newsletter-subs', JSON.stringify(subscriptions));
         toast({
-          title: "Subscribed!",
-          description: "Thank you for joining our newsletter.",
+          title: "Error",
+          description: data.error || "An error occurred. Please try again.",
+          variant: "destructive",
         });
       }
-      
-      setEmail('');
+    } catch (error) {
+       toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (

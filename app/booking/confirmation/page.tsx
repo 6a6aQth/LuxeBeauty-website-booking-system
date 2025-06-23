@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useRef, useEffect, useState } from "react"
 import { toPng } from "html-to-image"
 import Image from "next/image"
-import { formatTime } from "@/lib/time-slots"
+import { formatTime, serviceLabel } from "@/lib/time-slots"
 
 export default function BookingConfirmation() {
   const ticketRef = useRef<HTMLDivElement>(null)
@@ -13,7 +13,7 @@ export default function BookingConfirmation() {
   const downloadButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const data = localStorage.getItem('lauryn-luxe-booking')
+    const data = sessionStorage.getItem('lauryn-luxe-booking')
     if (data) {
       setBookingDetails(JSON.parse(data))
     }
@@ -120,22 +120,4 @@ export default function BookingConfirmation() {
       </div>
     </div>
   )
-}
-
-// Helper to map service values to labels
-function serviceLabel(value: string) {
-  const map: Record<string, string> = {
-    "gel-natural": "Gel on Natural Nails",
-    "gel-tips": "Gel on Tips",
-    "acrylic-natural": "Acrylic on Natural Nails",
-    "acrylic-tips": "Acrylic on Tips",
-    "luxury-manicure": "Luxury Manicure",
-    "basic-pedicure": "Basic Pedicure",
-    "gel-pedicure": "Gel Pedicure",
-    "luxury-pedicure": "Luxury Pedicure",
-    "nail-art": "Nail Art",
-    "soak-off": "Soak Off",
-    "refill": "Refill",
-  }
-  return map[value] || value
 }

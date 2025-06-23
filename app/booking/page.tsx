@@ -39,6 +39,7 @@ function getMaxBookingDate() {
 }
 
 interface Booking {
+  id: string;
   date: string;
   timeSlot: string;
 }
@@ -73,34 +74,38 @@ export default function Booking() {
   }, [step]);
 
   useEffect(() => {
-    // Fetch manually set unavailable slots
-    const unavailableData = localStorage.getItem('llb-unavailable-dates');
-    if (unavailableData) {
+    const fetchBookingData = async () => {
       try {
-        setUnavailableSlots(JSON.parse(unavailableData));
+        const [unavailableRes, bookingsRes] = await Promise.all([
+          fetch('/api/unavailable-dates'),
+          fetch('/api/bookings')
+        ]);
+
+        if (unavailableRes.ok) {
+          const unavailableData = await unavailableRes.json();
+          setUnavailableSlots(unavailableData);
+        } else {
+          console.error("Failed to fetch unavailable dates");
+        }
+
+        if (bookingsRes.ok) {
+          const bookingsData: Booking[] = await bookingsRes.json();
+          const slots: Record<string, string[]> = {};
+          bookingsData.forEach(booking => {
+            if (!slots[booking.date]) {
+              slots[booking.date] = [];
+            }
+            slots[booking.date].push(booking.timeSlot);
+          });
+          setBookedSlots(slots);
+        } else {
+          console.error("Failed to fetch bookings data");
+        }
       } catch (error) {
-        console.error("Failed to parse unavailable dates:", error);
-        setUnavailableSlots({});
+        console.error("Failed to fetch initial booking data:", error);
       }
-    }
-    
-    // Fetch existing bookings to determine booked slots
-    const bookingsData = localStorage.getItem('llb-bookings');
-    if (bookingsData) {
-      try {
-        const bookings: Booking[] = JSON.parse(bookingsData);
-        const slots: Record<string, string[]> = {};
-        bookings.forEach(booking => {
-          if (!slots[booking.date]) {
-            slots[booking.date] = [];
-          }
-          slots[booking.date].push(booking.timeSlot);
-        });
-        setBookedSlots(slots);
-      } catch (error) {
-        console.error("Failed to parse bookings data:", error)
-      }
-    }
+    };
+    fetchBookingData();
   }, [])
 
   const availableSlotsForSelectedDate = useMemo(() => {
@@ -170,35 +175,50 @@ export default function Booking() {
     setStep('payment')
   }
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     setIsPaying(true)
     setBookingStatus('processing');
 
-    setTimeout(() => {
-      setBookingStatus('received');
-      setTimeout(() => {
-        setBookingStatus('generating');
-        
-        // Save booking details to localStorage
-        const ticketId = `LLB-${formData.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
-        const bookingDetails = {
-          ...formData,
-          fee: "K10,000 (Paid)",
-          ticketId,
-          createdAt: new Date().toISOString(),
-        }
-        localStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails))
-        const bookings = JSON.parse(localStorage.getItem('llb-bookings') || '[]')
-        bookings.push(bookingDetails)
-        localStorage.setItem('llb-bookings', JSON.stringify(bookings))
-        
-        setTimeout(() => {
-            setBookingStatus('complete');
-            router.push("/booking/confirmation");
-        }, 1500); // Wait before redirect
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setBookingStatus('received');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setBookingStatus('generating');
 
-      }, 2000) // "Generating Ticket" duration
-    }, 2000) // "Payment Received" duration
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create booking');
+      }
+
+      const newBooking = await response.json();
+
+      const bookingDetails = {
+        ...newBooking,
+        fee: "K10,000 (Paid)",
+      };
+
+      sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+      
+      setBookingStatus('complete');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      router.push("/booking/confirmation");
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Booking Failed",
+        description: "Could not save your appointment. Please try again.",
+        variant: "destructive",
+      });
+      setIsPaying(false);
+      setBookingStatus('idle');
+    }
   }
 
   const serviceOptions = [
