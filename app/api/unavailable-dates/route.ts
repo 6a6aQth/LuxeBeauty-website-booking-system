@@ -4,11 +4,7 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const unavailableDates = await prisma.unavailableDate.findMany();
-    const slotsByDate = unavailableDates.reduce((acc, curr) => {
-      acc[curr.date] = curr.timeSlots;
-      return acc;
-    }, {} as Record<string, string[]>);
-    return NextResponse.json(slotsByDate);
+    return NextResponse.json(unavailableDates);
   } catch (error) {
     console.error('Failed to fetch unavailable dates:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

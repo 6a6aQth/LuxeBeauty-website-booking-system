@@ -32,6 +32,7 @@ export const NewsletterEmail = ({ subject, content, unsubscribeUrl }: Newsletter
             src={`${baseUrl}/lauryn-luxe-logo.png`}
             width="160"
             alt="Lauryn Luxe Beauty Studio"
+            style={logo}
           />
         </Section>
         <Section style={contentSection}>
@@ -72,9 +73,13 @@ const container = {
   boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
 };
 
+const logo = {
+  display: 'block',
+  margin: '0 auto',
+}
+
 const logoContainer = {
   padding: '20px 0',
-  textAlign: 'center' as const,
 };
 
 const contentSection = {

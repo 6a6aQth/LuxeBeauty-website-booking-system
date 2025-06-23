@@ -19,6 +19,19 @@ export const timeSlots = {
   ],
 };
 
+export function generateTimeSlots(includeWeekends: boolean): string[] {
+  const allSlots = new Set([
+    ...timeSlots.monday_thursday,
+    ...timeSlots.friday,
+  ]);
+
+  if (includeWeekends) {
+    timeSlots.saturday.forEach(slot => allSlots.add(slot));
+  }
+  
+  return Array.from(allSlots).sort();
+}
+
 export function getSlotsForDate(date: Date): string[] {
   const dayOfWeek = date.getDay(); // Sunday = 0, Monday = 1, etc.
 

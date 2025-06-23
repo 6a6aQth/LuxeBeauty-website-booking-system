@@ -4,8 +4,8 @@ import Logo from "@/components/logo"
 import { TiktokIcon } from "@/components/tiktok-icon"
 
 export default function Footer() {
-  const address = "Haile Selassie Ave, Blantyre."
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+  const address = "Lauryn Luxe Beauty Studio, Blantyre, Malawi";
+  const googleMapsUrl = "https://maps.app.goo.gl/3X5D11gfKSbZ3iSNA?g_st=com.google.maps.preview.copy"
 
   return (
     <footer className="bg-black text-white py-12">

@@ -41,8 +41,17 @@ export async function POST(req: NextRequest) {
     const { data, error } = await resend.batch.send(emailsToSend);
 
     if (error) {
-      console.error('Resend error:', error);
-      return NextResponse.json({ error: 'Failed to send newsletter' }, { status: 500 });
+      console.error('Resend batch error:', error);
+      return NextResponse.json({ error: 'Failed to send newsletter batch' }, { status: 500 });
+    }
+
+    // Check for individual email failures in the batch
+    if (data && data.data) {
+      const failedEmails = data.data.filter((result: any) => result.error);
+      if (failedEmails.length > 0) {
+          console.error('Some emails in the batch failed to send:', failedEmails);
+          return NextResponse.json({ error: 'Some emails failed to send.', details: failedEmails }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ message: 'Newsletter sent successfully', data });

@@ -1,72 +1,56 @@
-"use client"
-
-import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronDown } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { useIsMobile } from "@/hooks/use-mobile"
 import { AnimatedSection } from "@/components/ui/animated-section"
+import prisma from "@/lib/prisma"
+import type { Service } from "@prisma/client"
 
-const services = {
-  manicure: [
-    { name: "Gel on natural nails", price: "15,000" },
-    { name: "Gel on tips", price: "18,000" },
-    { name: "Acrylic on natural nails", price: "20,000" },
-    { name: "Acrylic on tips", price: "22,000" },
-    { name: "Luxury manicure (includes hand massage)", price: "25,000" },
-  ],
-  pedicure: [
-    { name: "Basic pedicure", price: "12,000" },
-    { name: "Gel pedicure", price: "18,000" },
-    { name: "Luxury pedicure (includes foot massage)", price: "22,000" },
-    { name: "Paraffin treatment", price: "15,000" },
-  ],
-  refills: [
-    { name: "Gel refill", price: "12,000" },
-    { name: "Acrylic refill", price: "15,000" },
-    { name: "Repair (per nail)", price: "2,000" },
-  ],
-  nailArt: [
-    { name: "Simple design (per nail)", price: "1,000" },
-    { name: "Complex design (per nail)", price: "2,000" },
-    { name: "Full set design", price: "10,000" },
-    { name: "3D art (per nail)", price: "3,000" },
-    { name: "Chrome/holographic finish", price: "5,000" },
-  ],
-  soakOff: [
-    { name: "Gel soak off", price: "5,000" },
-    { name: "Acrylic soak off", price: "8,000" },
-    { name: "Soak off with new application", price: "3,000" },
-  ],
+// Helper to format price with commas
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('en-US').format(price);
+};
+
+// Function to fetch services and group them by category
+async function getGroupedServices() {
+  const services = await prisma.service.findMany({
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  const grouped = services.reduce((acc: Record<string, Service[]>, service: Service) => {
+    const { category } = service;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(service);
+    return acc;
+  }, {} as Record<string, Service[]>);
+
+  return grouped;
 }
 
-const serviceImages = {
-  manicure: "/IMG_7410.png",
-  pedicure: "/IMG_7429.png",
-  refills: "/IMG_7435.png",
-  nailArt: "/IMG_5656.png",
-  soakOff: "/IMG_5922.png",
-}
+export default async function ServicesPage() {
+  const groupedServices = await getGroupedServices();
+  const categories = Object.keys(groupedServices);
 
-export default function ServicesPage() {
-  const isMobile = useIsMobile()
-  const [activeTab, setActiveTab] = useState("manicure")
+  const serviceImages: Record<string, string> = {
+    manicure: "/IMG_7410.png",
+    pedicure: "/pedicure.jpg",
+    refills: "/IMG_7435.png",
+    'nail-art': "/IMG_5656.png",
+    'soak-off': "/IMG_5922.png",
+  }
+
+  const categoryDescriptions: Record<string, string> = {
+    manicure: "Our manicure services are designed to enhance the natural beauty of your hands while ensuring nail health and longevity.",
+    pedicure: "Pamper your feet with our luxurious pedicure treatments that combine relaxation with expert nail care.",
+    refills: "Maintain your beautiful nails with our professional refill services, extending the life of your manicure.",
+    'nail-art': "Express your personality with our creative nail art options, from subtle elegance to bold statements.",
+    'soak-off': "Our gentle soak-off services ensure safe removal of previous applications without damaging your natural nails."
+  };
 
   return (
     <div>
@@ -87,24 +71,9 @@ export default function ServicesPage() {
         <AnimatedSection className="py-20">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-serif mb-12 text-center">Our Services</h2>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {isMobile && (
-                <Select onValueChange={setActiveTab} value={activeTab}>
-                  <SelectTrigger className="w-full mb-4">
-                    <SelectValue placeholder="Select a service category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(services).map((category) => (
-                      <SelectItem key={category} value={category} className="capitalize">
-                        {category.replace("-", " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              <TabsList className={`grid w-full grid-cols-5 bg-white/50 border ${isMobile ? "hidden" : ""}`}>
-                {Object.keys(services).map((category) => (
+            <Tabs defaultValue={categories[0]} className="w-full">
+              <TabsList className={`grid w-full grid-cols-5 bg-white/50 border`}>
+                {categories.map((category) => (
                   <TabsTrigger
                     key={category}
                     value={category}
@@ -116,40 +85,31 @@ export default function ServicesPage() {
               </TabsList>
 
               <div className="mt-8">
-                {Object.keys(services).map((category) => (
+                {categories.map((category) => (
                   <TabsContent key={category} value={category}>
                     <div className="grid md:grid-cols-2 gap-12 items-start">
                       <div className="sticky top-24">
                         <div className="aspect-square relative overflow-hidden rounded-lg shadow-glow mb-6">
                           <Image
-                            src={serviceImages[category as keyof typeof serviceImages]}
+                            src={serviceImages[category] || '/placeholder.jpg'}
                             alt={`${category} services`}
                             fill
                             className="object-cover"
                           />
                         </div>
                         <p className="text-gray-700 text-sm">
-                          {category === "manicure" &&
-                            "Our manicure services are designed to enhance the natural beauty of your hands while ensuring nail health and longevity."}
-                          {category === "pedicure" &&
-                            "Pamper your feet with our luxurious pedicure treatments that combine relaxation with expert nail care."}
-                          {category === "refills" &&
-                            "Maintain your beautiful nails with our professional refill services, extending the life of your manicure."}
-                          {category === "nail-art" &&
-                            "Express your personality with our creative nail art options, from subtle elegance to bold statements."}
-                          {category === "soak-off" &&
-                            "Our gentle soak-off services ensure safe removal of previous applications without damaging your natural nails."}
+                          {categoryDescriptions[category]}
                         </p>
                       </div>
 
                       <div>
                         <h2 className="text-3xl font-serif mb-6 capitalize">{category.replace("-", " ")} Services</h2>
                         <div className="space-y-4">
-                          {services[category as keyof typeof services].map((service, index) => (
-                            <Card key={index} className="border-none shadow-soft bg-white/70">
+                          {groupedServices[category].map((service: Service) => (
+                            <Card key={service.id} className="border-none shadow-soft bg-white/70">
                               <CardContent className="p-4 flex justify-between items-center">
                                 <h3 className="font-medium">{service.name}</h3>
-                                <p className="font-serif text-gray-800">MK {service.price}</p>
+                                <p className="font-serif text-gray-800">MK {formatPrice(service.price)}</p>
                               </CardContent>
                             </Card>
                           ))}

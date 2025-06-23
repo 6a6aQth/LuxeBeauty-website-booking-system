@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { format, parseISO, isValid, startOfWeek, endOfWeek, isWithinInterval, addDays } from 'date-fns'
+import { format, parseISO, isValid, startOfWeek, endOfWeek, isWithinInterval, addDays, isToday } from 'date-fns'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { Calendar } from "@/components/ui/calendar"
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { getSlotsForDate, formatTime, serviceLabel } from "@/lib/time-slots"
+import { getSlotsForDate, formatTime, serviceLabel, generateTimeSlots } from "@/lib/time-slots"
 import Logo from "@/components/logo";
 import NewsletterForm from '@/components/newsletter-form';
 import { Separator } from "@/components/ui/separator";
@@ -29,7 +29,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 
-const ADMIN_PASSWORD = 'luxe' // Change this to a secure password
+const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
+
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+}
 
 interface Booking {
   id: string;
@@ -43,17 +50,29 @@ interface Booking {
   discountApplied?: boolean;
 }
 
+interface UnavailableDate {
+  date: string;
+  timeSlots: string[];
+}
+
 export default function AdminPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [unavailableSlots, setUnavailableSlots] = useState<Record<string, string[]>>({})
+  const [services, setServices] = useState<Service[]>([])
+  const [unavailableDates, setUnavailableDates] = useState<UnavailableDate[]>([])
+  const [view, setView] = useState('all') // 'all' or 'upcoming'
+  const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([])
+  const [isSavingPrices, setIsSavingPrices] = useState(false)
   const [isManageDateOpen, setIsManageDateOpen] = useState(false)
   const [managedSlots, setManagedSlots] = useState<string[]>([])
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showAll, setShowAll] = useState(false); // To toggle between all and upcoming
+  const [showAll, setShowAll] = useState(false)
+
+  const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
   useEffect(() => {
     if (sessionStorage.getItem("llb_admin_auth") === "true") {
@@ -66,9 +85,10 @@ export default function AdminPage() {
 
     const fetchAdminData = async () => {
       try {
-        const [bookingsRes, unavailableRes] = await Promise.all([
+        const [bookingsRes, unavailableRes, servicesRes] = await Promise.all([
           fetch('/api/bookings'),
-          fetch('/api/unavailable-dates')
+          fetch('/api/unavailable-dates'),
+          fetch('/api/services'),
         ]);
 
         if (bookingsRes.ok) {
@@ -80,10 +100,18 @@ export default function AdminPage() {
 
         if (unavailableRes.ok) {
           const unavailableData = await unavailableRes.json();
-          setUnavailableSlots(unavailableData);
+          setUnavailableDates(unavailableData);
         } else {
            toast({ title: "Error", description: "Failed to fetch unavailable dates.", variant: "destructive" });
         }
+
+        if (servicesRes.ok) {
+            const servicesData = await servicesRes.json();
+            setServices(servicesData);
+        } else {
+            toast({ title: "Error", description: "Failed to fetch services.", variant: "destructive" });
+        }
+
       } catch (error) {
         console.error("Failed to fetch admin data", error);
         toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
@@ -92,6 +120,35 @@ export default function AdminPage() {
 
     fetchAdminData();
   }, [isAuthenticated]);
+
+  const handlePriceChange = (id: string, newPrice: string) => {
+    const price = parseInt(newPrice, 10);
+    if (isNaN(price)) return;
+    setServices(prev => 
+        prev.map(s => s.id === id ? { ...s, price } : s)
+    );
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSavingPrices(true);
+    try {
+        const response = await fetch('/api/services', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ services }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save prices');
+        }
+
+        toast({ title: "Success", description: "Service prices have been updated." });
+    } catch (error) {
+        toast({ title: "Error", description: "Could not save prices.", variant: "destructive" });
+    } finally {
+        setIsSavingPrices(false);
+    }
+  };
 
   const filteredBookings = useMemo(() => {
     const today = new Date();
@@ -149,13 +206,14 @@ export default function AdminPage() {
       const date = addDays(today, i);
       const dateStr = format(date, "yyyy-MM-dd");
       const daySlots = getSlotsForDate(date);
-      const unavailable = unavailableSlots[dateStr] || [];
-      const availableCount = daySlots.filter(slot => !unavailable.includes(slot)).length;
+      const unavailableForDate = unavailableDates.find(d => d.date === dateStr);
+      const unavailableCount = unavailableForDate ? unavailableForDate.timeSlots.length : 0;
+      const availableCount = daySlots.length - unavailableCount;
       totalAvailableSlots += availableCount;
     }
 
-    if (totalAvailableSlots === 0) {
-      return { count: bookingsInNext7Days.length, percentage: 100 };
+    if (totalAvailableSlots <= 0) {
+      return { count: bookingsInNext7Days.length, percentage: bookingsInNext7Days.length > 0 ? 100 : 0 };
     }
 
     const percentage = Math.min((bookingsInNext7Days.length / totalAvailableSlots) * 100, 100);
@@ -164,54 +222,41 @@ export default function AdminPage() {
       count: bookingsInNext7Days.length,
       percentage: percentage,
     };
-  }, [bookings, unavailableSlots]);
+  }, [bookings, unavailableDates]);
 
   const availableSlotsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
     return getSlotsForDate(selectedDate);
   }, [selectedDate]);
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
-    setSelectedDate(date);
-
-    const dateStr = format(date, "yyyy-MM-dd");
-    const currentlyUnavailable = unavailableSlots[dateStr] || [];
-    setManagedSlots(currentlyUnavailable);
-
-    setIsManageDateOpen(true);
-  };
+  const bookingsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return [];
+    const dateString = format(selectedDate, 'yyyy-MM-dd');
+    return bookings.filter(b => b.date === dateString);
+  }, [bookings, selectedDate]);
 
   const handleSaveAvailability = async () => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const newUnavailableSlots = { ...unavailableSlots };
-    
-    if (managedSlots.length > 0) {
-      newUnavailableSlots[dateStr] = managedSlots;
-    } else {
-      delete newUnavailableSlots[dateStr];
-    }
-    
+
     try {
-      const response = await fetch('/api/unavailable-dates', {
+      await fetch('/api/unavailable-dates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateStr, slots: managedSlots }),
+        body: JSON.stringify({ date: dateStr, slots: selectedTimeSlots }),
       });
-
-      if (!response.ok) throw new Error('Failed to save availability');
+      toast({ title: "Success", description: "Availability updated successfully." });
       
-      setUnavailableSlots(newUnavailableSlots);
-      toast({
-        title: "Availability Updated",
-        description: `Availability for ${format(selectedDate, "PPP")} has been updated.`,
-      });
-      setIsManageDateOpen(false);
+      const res = await fetch('/api/unavailable-dates');
+      if (res.ok) {
+        setUnavailableDates(await res.json());
+      }
+      
     } catch (error) {
-      console.error(error);
-      toast({ title: "Error", description: "Could not update availability.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to update availability.", variant: "destructive" });
     }
+
+    setIsModalOpen(false);
   };
 
   const bookedDays = useMemo(() => {
@@ -223,24 +268,17 @@ export default function AdminPage() {
 
   const parsedUnavailableDates = useMemo(() => {
     const fullyUnavailableDates: Date[] = [];
-    for (const dateStr in unavailableSlots) {
-      const allPossibleSlots = getSlotsForDate(parseISO(dateStr));
-      if (allPossibleSlots.length > 0 && allPossibleSlots.every(slot => unavailableSlots[dateStr]?.includes(slot))) {
-        const d = parseISO(dateStr);
+    unavailableDates.forEach(unavailableDate => {
+      const allPossibleSlots = getSlotsForDate(parseISO(unavailableDate.date));
+      if (allPossibleSlots.length > 0 && allPossibleSlots.every(slot => unavailableDate.timeSlots.includes(slot))) {
+        const d = parseISO(unavailableDate.date);
         if (isValid(d)) {
           fullyUnavailableDates.push(d);
         }
       }
-    }
+    });
     return fullyUnavailableDates;
-  }, [unavailableSlots]);
-
-  const bookingsForSelectedDate = useMemo(() => {
-    if (!selectedDate) return [];
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    return bookings.filter(b => b.date === dateStr);
-  }, [bookings, selectedDate]);
-
+  }, [unavailableDates]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -257,10 +295,24 @@ export default function AdminPage() {
   }
 
   const handleLogout = () => {
-    sessionStorage.removeItem("llb_admin_auth");
-    setIsAuthenticated(false);
+    sessionStorage.removeItem("llb_admin_auth")
+    setIsAuthenticated(false)
     router.push('/');
   }
+
+  const handleDateClick = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Working days are Mon-Sat. Block clicks only on past dates and Sundays.
+    if (date < today || date.getDay() === 0 ) {
+      return; 
+    }
+    setSelectedDate(date);
+    const dateString = date.toISOString().split('T')[0];
+    const unavailableForDate = unavailableDates.find(d => d.date === dateString);
+    setSelectedTimeSlots(unavailableForDate ? unavailableForDate.timeSlots : []);
+    setIsModalOpen(true);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -307,70 +359,94 @@ export default function AdminPage() {
       </header>
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           
-          {/* Left Column */}
           <div className="lg:col-span-1 space-y-8">
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-serif">Manage Availability</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
+              <CardContent className="p-0">
+                <DayPicker
+                  showOutsideDays
+                  fixedWeeks
+                  numberOfMonths={1}
+                  disabled={[{ before: new Date() }, { dayOfWeek: [0] }]}
+                  onDayClick={handleDateClick}
                   selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  disabled={[{ before: new Date() }]}
-                  modifiers={{ 
-                    booked: bookedDays,
-                    unavailable: parsedUnavailableDates
-                  }}
-                  modifiersStyles={{
-                    booked: { fontWeight: 'bold', color: '#4ade80' },
-                    unavailable: { textDecoration: 'line-through', color: '#f87171' }
-                  }}
-                  className="p-0"
+                  className="p-0 flex justify-center"
                 />
-                <p className="text-sm text-gray-500 mt-4 text-center">Click a date to manage its time slots.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="font-serif">Next 7 Days Capacity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
+                  <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
+                </div>
+                <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-brand-blush-foreground" />
               </CardContent>
             </Card>
 
             <Card className="shadow-lg">
                 <CardHeader>
-                    <CardTitle className="font-serif">Newsletter</CardTitle>
-                    <CardDescription>Send a message to all subscribers.</CardDescription>
+                    <CardTitle className="font-serif">Manage Service Prices</CardTitle>
+                    <CardDescription>Update the prices for your services.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <NewsletterForm />
+                    <ScrollArea className="h-[400px] pr-4 -mr-4">
+                        <div className="space-y-4">
+                            {services.map(service => (
+                                <div key={service.id} className="flex justify-between items-center gap-4">
+                                    <Label htmlFor={`price-${service.id}`} className="flex-1">{service.name}</Label>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-500">MK</span>
+                                      <Input
+                                          id={`price-${service.id}`}
+                                          type="number"
+                                          value={service.price}
+                                          onChange={(e) => handlePriceChange(service.id, e.target.value)}
+                                          className="w-28"
+                                      />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
                 </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-serif">Next 7 Days Capacity</CardTitle>
-                </CardHeader>
                 <CardContent>
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
-                        <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
-                    </div>
-                    <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-brand-blush-foreground" />
+                    <Button onClick={handleSaveChanges} disabled={isSavingPrices} className="w-full">
+                        {isSavingPrices ? 'Saving...' : 'Save Prices'}
+                    </Button>
                 </CardContent>
             </Card>
 
             <Card className="shadow-lg">
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="font-serif">Upcoming Bookings ({filteredBookings.length})</CardTitle>
-                  <div className="flex items-center space-x-4">
+                <CardTitle className="font-serif">Newsletter</CardTitle>
+                <CardDescription>Send a message to all subscribers.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <NewsletterForm />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-1 space-y-8">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle className="font-serif">Bookings ({filteredBookings.length})</CardTitle>
+                  <div className="flex items-center space-x-4 w-full sm:w-auto">
                     <Input 
-                      placeholder="Search bookings by name, contact, etc."
+                      placeholder="Search..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="max-w-xs"
+                      className="max-w-xs w-full"
                     />
                     <div className="flex items-center space-x-2">
                       <Switch 
@@ -384,7 +460,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[600px] pr-4">
+                <ScrollArea className="h-[1200px] pr-4 -mr-4">
                   <div className="space-y-6">
                     {filteredBookings.length > 0 ? (
                       filteredBookings.map((booking) => (
@@ -402,8 +478,8 @@ export default function AdminPage() {
                           <Separator className="my-3" />
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="font-semibold">Services:</p>
-                              <p>{booking.services.map(serviceLabel).join(', ')}</p>
+                              <p className="font-semibold text-gray-700">Services</p>
+                              <p className="text-gray-600">{booking.services.map(serviceLabel).join(', ')}</p>
                             </div>
                             <div>
                                <p className="font-semibold text-gray-700">Contact</p>
@@ -426,41 +502,60 @@ export default function AdminPage() {
         </div>
       </main>
 
-      <Dialog open={isManageDateOpen} onOpenChange={setIsManageDateOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-serif">Manage Availability for {selectedDate && format(selectedDate, "PPP")}</DialogTitle>
+            <DialogTitle>Manage Availability for {selectedDate && format(selectedDate, 'PPP')}</DialogTitle>
             <DialogDescription>
               Select the time slots to mark as unavailable for this date. Any existing bookings will still be shown.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[50vh] pr-4 -mr-4">
-            <div className="grid grid-cols-2 gap-4 py-4">
-              {availableSlotsForSelectedDate.map(slot => {
-                  const isBooked = bookingsForSelectedDate.some(b => b.timeSlot === slot);
-                  return (
-                      <div key={slot} className="flex items-center space-x-2">
-                          <Checkbox
-                              id={slot}
-                              checked={managedSlots.includes(slot)}
-                              onCheckedChange={(checked) => {
-                                  setManagedSlots(prev => 
-                                      checked ? [...prev, slot] : prev.filter(s => s !== slot)
-                                  )
-                              }}
-                              disabled={isBooked}
-                          />
-                          <Label htmlFor={slot} className={isBooked ? 'line-through text-gray-400' : ''}>
-                              {formatTime(slot)} {isBooked && "(Booked)"}
-                          </Label>
+
+          {bookingsForSelectedDate.length > 0 && (
+            <>
+              <div className="py-2">
+                <h4 className="font-semibold mb-2 text-sm text-gray-700">Bookings for this date:</h4>
+                <ScrollArea className="h-[100px] rounded-md border p-2">
+                  <div className="space-y-2">
+                    {bookingsForSelectedDate.map(booking => (
+                      <div key={booking.id} className="text-sm">
+                        <strong>{formatTime(booking.timeSlot)}:</strong> {booking.name} ({booking.services.map(serviceLabel).join(', ')})
                       </div>
-                  )
-              })}
-            </div>
-          </ScrollArea>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+              <Separator className="my-2" />
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 py-4">
+            {availableSlotsForSelectedDate.map(slot => {
+              const isBooked = bookingsForSelectedDate.some(b => b.timeSlot === slot);
+              return (
+                <div key={slot} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={slot}
+                    checked={selectedTimeSlots.includes(slot) || isBooked}
+                    disabled={isBooked}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedTimeSlots(prev => [...prev, slot]);
+                      } else {
+                        setSelectedTimeSlots(prev => prev.filter(s => s !== slot));
+                      }
+                    }}
+                  />
+                  <label htmlFor={slot} className={`text-sm ${isBooked ? 'text-gray-400 line-through' : ''}`}>
+                    {formatTime(slot)} {isBooked && "(Booked)"}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsManageDateOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveAvailability} className="bg-gray-800 hover:bg-gray-900 text-white">Save Changes</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveAvailability}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
