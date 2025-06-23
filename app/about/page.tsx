@@ -17,7 +17,7 @@ export default function About() {
       </AnimatedSection>
 
       {/* About Lauryn Section */}
-      <AnimatedSection className="py-20 bg-white" delay={0.2}>
+      <AnimatedSection className="py-20 bg-gray-200" delay={0.2}>
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -53,53 +53,41 @@ export default function About() {
       </AnimatedSection>
 
       {/* Studio Philosophy */}
-      <AnimatedSection className="py-20 bg-nude-light" delay={0.4}>
+      <AnimatedSection className="py-20 bg-gray-200" delay={0.2}>
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-serif mb-8 text-center">Studio Philosophy</h2>
-
-            <div className="grid md:grid-cols-2 gap-12">
-              <div className="bg-white p-8 shadow-soft">
-                <h3 className="text-xl font-serif mb-4">Precision & Excellence</h3>
-                <p className="text-gray-700">
-                  At Lauryn Luxe, we believe that excellence lies in the details. Every service we provide is executed
-                  with meticulous precision and unwavering attention to detail. We take pride in our craftsmanship and
-                  strive for perfection in every nail we touch.
-                </p>
-              </div>
-
-              <div className="bg-white p-8 shadow-soft">
-                <h3 className="text-xl font-serif mb-4">Elegance & Sophistication</h3>
-                <p className="text-gray-700">
-                  Elegance is at the heart of our aesthetic. We embrace sophisticated designs, clean lines, and timeless
-                  beauty. Our work reflects a refined taste that enhances your natural beauty while making a statement
-                  of quiet confidence.
-                </p>
-              </div>
-
-              <div className="bg-white p-8 shadow-soft">
-                <h3 className="text-xl font-serif mb-4">Self-Care & Wellness</h3>
-                <p className="text-gray-700">
-                  We view beauty rituals as essential acts of self-care. Our studio provides a sanctuary where you can
-                  disconnect from the outside world and focus on your wellbeing. Every treatment is designed to nurture
-                  both your physical appearance and inner peace.
-                </p>
-              </div>
-
-              <div className="bg-white p-8 shadow-soft">
-                <h3 className="text-xl font-serif mb-4">Premium Experience</h3>
-                <p className="text-gray-700">
-                  From the moment you enter our studio to the moment you leave, we are committed to providing a premium
-                  experience. We use only the finest products, maintain impeccable hygiene standards, and offer
-                  personalized attention to ensure your complete satisfaction.
-                </p>
-              </div>
+          <h2 className="text-3xl font-serif mb-12 text-center">Studio Philosophy</h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-xl font-serif mb-3">Precision & Excellence</h3>
+              <p className="text-gray-600">
+                At Lauryn Luxe, we believe that excellence lies in the details. Every service we provide is executed
+                with meticulous precision and unwavering attention to detail. We take pride in our craftsmanship and
+                strive for perfection in every nail we touch.
+              </p>
             </div>
-
-            <div className="text-center mt-12">
-              <Link href="/services">
-                <Button className="bg-black text-white hover:bg-gray-800 rounded-none">Explore Our Services</Button>
-              </Link>
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-xl font-serif mb-3">Elegance & Sophistication</h3>
+              <p className="text-gray-600">
+                Elegance is at the heart of our aesthetic. We embrace sophisticated designs, clean lines, and timeless
+                beauty. Our work reflects a refined taste that enhances your natural beauty while making a statement
+                of quiet confidence.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-xl font-serif mb-3">Self-Care & Wellness</h3>
+              <p className="text-gray-600">
+                We view beauty rituals as essential acts of self-care. Our studio provides a sanctuary where you can
+                disconnect from the outside world and focus on your wellbeing. Every treatment is designed to nurture
+                both your physical appearance and inner peace.
+              </p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+              <h3 className="text-xl font-serif mb-3">Premium Experience</h3>
+              <p className="text-gray-600">
+                From the moment you enter our studio to the moment you leave, we are committed to providing a premium
+                experience. We use only the finest products, maintain impeccable hygiene standards, and offer
+                personalized attention to ensure your complete satisfaction.
+              </p>
             </div>
           </div>
         </div>

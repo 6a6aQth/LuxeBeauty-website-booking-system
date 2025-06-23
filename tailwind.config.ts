@@ -3,12 +3,11 @@ import type { Config } from "tailwindcss"
 const config = {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
-  ],
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+	],
   prefix: "",
   theme: {
     container: {
@@ -53,29 +52,15 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        pink: {
-          light: "#FFE4E8",
-          DEFAULT: "#FFB6C1",
-          dark: "#FF8DA1",
-        },
-        nude: {
-          light: "#F5E8E0",
-          DEFAULT: "#E8D0C3",
-          dark: "#D4B8A5",
-        },
+        'brand-blush': {
+          DEFAULT: "hsl(var(--brand-blush))",
+          foreground: "hsl(var(--brand-blush-foreground))",
+        }
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-      fontFamily: {
-        serif: ["var(--font-playfair)", "serif"],
-        sans: ["var(--font-montserrat)", "sans-serif"],
-      },
-      boxShadow: {
-        soft: "0 4px 20px rgba(0, 0, 0, 0.05)",
-        glow: "0 0 15px rgba(255, 192, 203, 0.3)",
       },
       keyframes: {
         "accordion-down": {
@@ -91,6 +76,13 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        serif: ["var(--font-serif)"],
+      },
+      boxShadow: {
+        soft: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],

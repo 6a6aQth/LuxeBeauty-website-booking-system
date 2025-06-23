@@ -18,42 +18,30 @@ import {
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { getSlotsForDate, formatTime } from "@/lib/time-slots"
+import { getSlotsForDate, formatTime, serviceLabel } from "@/lib/time-slots"
 import Logo from "@/components/logo";
 import NewsletterForm from '@/components/newsletter-form';
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 const ADMIN_PASSWORD = 'luxe' // Change this to a secure password
 
 interface Booking {
   id: string;
   ticketId: string;
-  name: string;
+  name:string;
   date: string;
   timeSlot: string;
   services: string[];
   phone: string;
   email?: string;
+  discountApplied?: boolean;
 }
-
-const serviceOptions = [
-  { value: "gel-natural", label: "Gel on Natural Nails" },
-  { value: "gel-tips", label: "Gel on Tips" },
-  { value: "acrylic-natural", label: "Acrylic on Natural Nails" },
-  { value: "acrylic-tips", label: "Acrylic on Tips" },
-  { value: "luxury-manicure", label: "Luxury Manicure" },
-  { value: "basic-pedicure", label: "Basic Pedicure" },
-  { value: "gel-pedicure", label: "Gel Pedicure" },
-  { value: "luxury-pedicure", label: "Luxury Pedicure" },
-  { value: "nail-art", label: "Nail Art" },
-  { value: "soak-off", label: "Soak Off" },
-  { value: "refill", label: "Refill" },
-];
-
-const serviceLabel = (value: string) => serviceOptions.find(s => s.value === value)?.label || value;
 
 export default function AdminPage() {
   const router = useRouter()
@@ -249,9 +237,10 @@ export default function AdminPage() {
 
   const bookingsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
-    const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
-    return bookings.filter(b => b.date === selectedDateStr);
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    return bookings.filter(b => b.date === dateStr);
   }, [bookings, selectedDate]);
+
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -260,224 +249,218 @@ export default function AdminPage() {
       setIsAuthenticated(true)
     } else {
       toast({
-        title: "Login Error",
-        description: "Incorrect password",
+        title: "Authentication Failed",
+        description: "The password you entered is incorrect.",
         variant: "destructive",
-      });
+      })
     }
+  }
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("llb_admin_auth");
+    setIsAuthenticated(false);
+    router.push('/');
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-pink-100 via-pink-50 to-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md mx-auto space-y-6">
-          <div className="flex justify-center">
-            <Logo />
-          </div>
-
-          <div className="bg-white/50 backdrop-blur-lg rounded-xl shadow-lg border border-white/20 p-8">
-            <h3 className="text-2xl font-serif text-center text-gray-800 mb-6">Admin Access</h3>
-
-            <form onSubmit={handleLogin} className="space-y-6">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <Card className="w-full max-w-sm shadow-lg">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-fit mb-4">
+              <Logo />
+              <h2 className="text-2xl font-serif mt-4">Admin Login</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-                <input
+                <Label htmlFor="password">Password</Label>
+                <Input
                   id="password"
-                  className="mt-2 block w-full px-4 py-3 text-gray-700 placeholder-gray-400 bg-white/70 border-2 border-transparent rounded-lg focus:border-pink-400 focus:ring-opacity-40 focus:outline-none focus:ring focus:ring-pink-300 transition-all duration-300"
                   type="password"
-                  placeholder="Enter your password"
-                  aria-label="Password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  required
                 />
               </div>
-
-              <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-base font-semibold transition-all duration-300">
-                Login
+              <Button type="submit" className="w-full">
+                Log In
               </Button>
             </form>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <main>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-serif">Admin Dashboard</h1>
-            <Button variant="outline" onClick={() => {
-              sessionStorage.removeItem("llb_admin_auth");
-              setIsAuthenticated(false);
-            }}>Log Out</Button>
+    <div className="bg-gray-100 min-h-screen">
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+                <h1 className="text-2xl font-serif font-semibold text-gray-900">Admin Dashboard</h1>
+                <Button variant="outline" onClick={handleLogout}>Log Out</Button>
+            </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* Left Column */}
+          <div className="lg:col-span-1 space-y-8">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="font-serif">Manage Availability</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={[{ before: new Date() }]}
+                  modifiers={{ 
+                    booked: bookedDays,
+                    unavailable: parsedUnavailableDates
+                  }}
+                  modifiersStyles={{
+                    booked: { fontWeight: 'bold', color: '#4ade80' },
+                    unavailable: { textDecoration: 'line-through', color: '#f87171' }
+                  }}
+                  className="p-0"
+                />
+                <p className="text-sm text-gray-500 mt-4 text-center">Click a date to manage its time slots.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-serif">Newsletter</CardTitle>
+                    <CardDescription>Send a message to all subscribers.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <NewsletterForm />
+                </CardContent>
+            </Card>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Calendar Section */}
-            <div className="md:col-span-1 bg-pink-50/50 border border-pink-200 rounded-xl p-4 shadow">
-              <h2 className="text-xl font-serif mb-4 text-center">Manage Availability</h2>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                className="rounded-md justify-center flex"
-                modifiers={{
-                  unavailable: parsedUnavailableDates,
-                  booked: bookedDays,
-                }}
-                modifiersClassNames={{
-                  unavailable: "bg-pink-300 text-white hover:bg-pink-400 cursor-pointer",
-                  booked: "bg-green-300 text-white hover:bg-green-400",
-                }}
-                disabled={{ before: new Date() }}
-              />
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Click a date to manage its time slots.
-              </p>
-            </div>
-
-            {/* Bookings List Section */}
-            <div className="md:col-span-2">
-              <div className="mb-6 bg-gray-100 p-4 rounded-xl border border-gray-200">
-                <div className="flex justify-between items-center mb-2">
-                   <h3 className="text-sm font-semibold text-gray-800">Next 7 Days Capacity</h3>
-                   <span className="text-sm font-bold text-gray-600">{weeklyCapacity.count} Bookings</span>
-                </div>
-                <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-pink-400" />
-                <p className="text-xs text-gray-500 mt-1 text-right">{Math.round(weeklyCapacity.percentage)}% full</p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-                  <h2 className="text-xl font-serif">
-                    {showAll ? "All Bookings" : "Upcoming Bookings"}
-                    <span className="text-base text-gray-400 font-normal ml-2">({filteredBookings.length})</span>
-                  </h2>
-                  <div className="flex items-center gap-4">
-                     <Input
-                        type="text"
-                        placeholder="Search bookings..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="max-w-xs bg-white focus:ring-pink-500"
-                     />
-                     <div className="flex items-center space-x-2">
-                        <Switch
-                           id="show-all"
-                           checked={showAll}
-                           onCheckedChange={setShowAll}
-                        />
-                        <Label htmlFor="show-all" className="text-sm whitespace-nowrap">Show Past</Label>
-                     </div>
-                  </div>
-              </div>
-
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {filteredBookings.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500 italic">
-                    <p>No bookings found.</p>
-                    {searchTerm && <p className="text-sm">Try adjusting your search or filters.</p>}
-                  </div>
-                ) : (
-                  filteredBookings.map(booking => (
-                    <div key={booking.ticketId} className="bg-pink-50 border border-pink-200 rounded-xl shadow p-4 flex flex-col md:flex-row md:items-center gap-4">
-                      <div className="flex-1">
-                        <div className="font-serif text-lg text-pink-700 mb-1">{booking.name}</div>
-                        <div className="text-sm text-gray-700 mb-1"><span className="font-bold">Date:</span> {format(parseISO(booking.date), "PPP")} &nbsp; <span className="font-bold">Time:</span> {formatTime(booking.timeSlot)}</div>
-                        <div className="text-sm mb-1"><span className="font-bold">Services:</span><br />{Array.isArray(booking.services) ? booking.services.map((s: string) => serviceLabel(s)).join(", ") : ''}</div>
-                        <div className="text-sm mb-1"><span className="font-bold">Contact:</span><br />{booking.phone}{booking.email && <><br />{booking.email}</>}</div>
-                        <div className="text-xs text-gray-400 mt-2">Booking ID: {booking.ticketId}</div>
-                      </div>
+          {/* Right Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-serif">Next 7 Days Capacity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
+                        <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-brand-blush-foreground" />
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-lg">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="font-serif">Upcoming Bookings ({filteredBookings.length})</CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <Input 
+                      placeholder="Search bookings by name, contact, etc."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="show-all"
+                        checked={showAll}
+                        onCheckedChange={setShowAll}
+                      />
+                      <Label htmlFor="show-all">Show All</Label>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px] pr-4">
+                  <div className="space-y-6">
+                    {filteredBookings.length > 0 ? (
+                      filteredBookings.map((booking) => (
+                        <div key={booking.id} className="p-4 border rounded-lg bg-white">
+                          <div className="flex justify-between items-start">
+                              <div>
+                                  <h3 className="font-bold text-lg text-gray-800">{booking.name}</h3>
+                                  {booking.discountApplied && <Badge className="bg-brand-blush text-brand-blush-foreground border-brand-blush-foreground/20 mt-1">30% Discount</Badge>}
+                              </div>
+                              <div className="text-right text-sm flex-shrink-0">
+                                  <p><strong>Date:</strong> {format(parseISO(booking.date), "PPP")}</p>
+                                  <p><strong>Time:</strong> {formatTime(booking.timeSlot)}</p>
+                              </div>
+                          </div>
+                          <Separator className="my-3" />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-semibold">Services:</p>
+                              <p>{booking.services.map(serviceLabel).join(', ')}</p>
+                            </div>
+                            <div>
+                               <p className="font-semibold text-gray-700">Contact</p>
+                               <p className="text-gray-600">{booking.phone}</p>
+                               {booking.email && <p className="text-gray-600">{booking.email}</p>}
+                            </div>
+                          </div>
+                          <Separator className="my-3" />
+                          <p className="text-xs text-gray-500">Booking ID: {booking.ticketId}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">No bookings found.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </div>
-
-          <Separator className="my-8" />
-
-          {/* Newsletter Section */}
-          <div>
-            <NewsletterForm />
-          </div>
-
         </div>
       </main>
 
       <Dialog open={isManageDateOpen} onOpenChange={setIsManageDateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Manage Availability</DialogTitle>
+            <DialogTitle className="font-serif">Manage Availability for {selectedDate && format(selectedDate, "PPP")}</DialogTitle>
             <DialogDescription>
-              {selectedDate ? `Update time slots for ${format(selectedDate, "PPP")}` : ''}
+              Select the time slots to mark as unavailable for this date. Any existing bookings will still be shown.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-4">
-              <h3 className="font-semibold">Block Time Slots</h3>
-              <p className="text-sm text-gray-500">Select slots to make them unavailable. Slots with existing bookings cannot be blocked.</p>
-              
-              <div className="grid grid-cols-2 gap-2">
-                {availableSlotsForSelectedDate.map(slot => {
+          <ScrollArea className="max-h-[50vh] pr-4 -mr-4">
+            <div className="grid grid-cols-2 gap-4 py-4">
+              {availableSlotsForSelectedDate.map(slot => {
                   const isBooked = bookingsForSelectedDate.some(b => b.timeSlot === slot);
-                  const isChecked = managedSlots.includes(slot);
-
                   return (
-                    <div key={slot} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={slot}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setManagedSlots(prev => [...prev, slot]);
-                          } else {
-                            setManagedSlots(prev => prev.filter(s => s !== slot));
-                          }
-                        }}
-                        disabled={isBooked}
-                      />
-                      <Label htmlFor={slot} className={isBooked ? 'text-gray-400 italic line-through' : ''}>
-                        {formatTime(slot)} {isBooked && '(Booked)'}
-                      </Label>
-                    </div>
+                      <div key={slot} className="flex items-center space-x-2">
+                          <Checkbox
+                              id={slot}
+                              checked={managedSlots.includes(slot)}
+                              onCheckedChange={(checked) => {
+                                  setManagedSlots(prev => 
+                                      checked ? [...prev, slot] : prev.filter(s => s !== slot)
+                                  )
+                              }}
+                              disabled={isBooked}
+                          />
+                          <Label htmlFor={slot} className={isBooked ? 'line-through text-gray-400' : ''}>
+                              {formatTime(slot)} {isBooked && "(Booked)"}
+                          </Label>
+                      </div>
                   )
-                })}
-              </div>
+              })}
             </div>
-
-            <hr className="my-2" />
-
-            <div className="space-y-4">
-              <h3 className="font-semibold">Bookings for this Day</h3>
-              {bookingsForSelectedDate.length > 0 ? (
-                <ul className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                  {bookingsForSelectedDate.map(booking => (
-                    <li key={booking.ticketId} className="text-sm p-3 bg-pink-50 rounded-lg border border-pink-100">
-                      <div className="font-bold text-pink-800">{booking.name}</div>
-                      <div className="text-gray-700">
-                        <span className="font-semibold">Time:</span> {formatTime(booking.timeSlot)}
-                      </div>
-                      <div className="text-gray-600">
-                        <span className="font-semibold">Services:</span> {booking.services.map(s => serviceLabel(s)).join(', ')}
-                      </div>
-                       <div className="text-gray-600">
-                        <span className="font-semibold">Contact:</span> {booking.phone}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500 italic">No bookings for this date.</p>
-              )}
-            </div>
-          </div>
-
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsManageDateOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveAvailability}>Save Changes</Button>
+            <Button onClick={handleSaveAvailability} className="bg-gray-800 hover:bg-gray-900 text-white">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

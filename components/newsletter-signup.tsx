@@ -73,12 +73,12 @@ export default function NewsletterSignup() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         disabled={isSubmitting}
-        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:ring-pink-500"
+        className="bg-white border-gray-300 text-black placeholder:text-gray-500 focus:ring-gray-500"
       />
       <Button 
         type="submit" 
         disabled={isSubmitting}
-        className="bg-white text-black hover:bg-gray-200 rounded-md"
+        className="bg-black text-white hover:bg-gray-800 rounded-md"
       >
         {isSubmitting ? 'Subscribing...' : 'Subscribe'}
       </Button>

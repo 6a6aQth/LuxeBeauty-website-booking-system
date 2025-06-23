@@ -8,9 +8,8 @@ import Image from "next/image"
 import { formatTime, serviceLabel } from "@/lib/time-slots"
 
 export default function BookingConfirmation() {
-  const ticketRef = useRef<HTMLDivElement>(null)
   const [bookingDetails, setBookingDetails] = useState<any>(null)
-  const downloadButtonRef = useRef<HTMLDivElement>(null);
+  const ticketRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const data = sessionStorage.getItem('lauryn-luxe-booking')
@@ -19,108 +18,79 @@ export default function BookingConfirmation() {
     }
   }, [])
 
-  useEffect(() => {
-    // Scroll to the download button on page load
-    if (bookingDetails && downloadButtonRef.current) {
-       setTimeout(() => {
-        downloadButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 500); // Delay to allow page to render fully
-    }
-  }, [bookingDetails]);
-
   const handleDownload = async () => {
-    if (ticketRef.current) {
-      const dataUrl = await toPng(ticketRef.current)
-      const link = document.createElement("a")
-      link.download = "lauryn-luxe-booking-ticket.png"
-      link.href = dataUrl
-      link.click()
+    if (!ticketRef.current) return
+
+    try {
+      const dataUrl = await toPng(ticketRef.current, { 
+        cacheBust: true, 
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+      const link = document.createElement('a');
+      link.download = `lauryn-luxe-ticket-${bookingDetails?.ticketId || 'booking'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('oops, something went wrong!', err)
     }
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center py-20 bg-gradient-to-br from-pink-50 to-nude-light">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-3xl font-serif mb-2">Booking Request Received</h1>
-          <p className="text-gray-600 mb-8 text-lg">Please download your ticket below.</p>
+    <div className="bg-gray-300 min-h-screen">
+      <div className="container mx-auto px-4 py-12 md:py-20 text-center">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-serif mb-2">Booking Request Received</h1>
+          <p className="text-lg text-gray-600 mb-8">Please download your ticket below.</p>
+        </div>
+        
+        <div>
+          <div ref={ticketRef} className="ticket bg-white max-w-lg mx-auto rounded-xl shadow-lg p-6 md:p-10 border border-gray-200 relative">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-8 bg-gray-300 rounded-b-full border-x border-b border-gray-400"></div>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-16 h-8 bg-gray-300 rounded-t-full border-x border-t border-gray-400"></div>
 
-          {/* Elegant Ticket Section */}
-          <div className="flex flex-col items-center mb-8" ref={downloadButtonRef}>
-            <div
-              ref={ticketRef}
-              className="relative bg-white border-2 border-pink-200 rounded-2xl shadow-2xl px-8 py-12 w-full max-w-xl flex flex-col items-center justify-center overflow-hidden"
-              style={{ fontFamily: 'Montserrat, sans-serif', minHeight: 520 }}
-            >
-              {/* Watermark logo */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-10 z-0">
-                <Image src="/lauryn-luxe-logo.png" alt="Lauryn Luxe Logo Watermark" width={340} height={340} style={{objectFit: 'contain'}} />
+            <div className="relative z-10 w-full flex flex-col items-center">
+              {/* Logo text recreation */}
+              <div className="text-center mb-2">
+                <div className="text-[2.5rem] md:text-[3.2rem] font-serif tracking-[0.3em] leading-none text-black font-light">LAURYN</div>
+                <div className="text-3xl md:text-4xl italic font-serif tracking-wide text-black -mt-2 mb-1" style={{fontFamily: 'Playfair Display, serif', fontStyle: 'italic'}}>luxe</div>
+                <div className="uppercase text-xs tracking-[0.2em] text-gray-700 mb-1">Beauty Studio</div>
+                <div className="italic text-gray-400 text-base mb-6">Luxury beauty. Redefined.</div>
               </div>
-              {/* Blush-pink gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-50/80 to-white/60 z-0" />
-              {/* Main content */}
-              <div className="relative z-10 w-full flex flex-col items-center">
-                {/* Logo text recreation */}
-                <div className="text-center mb-2">
-                  <div className="text-[2.5rem] md:text-[3.2rem] font-serif tracking-[0.3em] leading-none text-black font-light">LAURYN</div>
-                  <div className="text-3xl md:text-4xl italic font-serif tracking-wide text-black -mt-2 mb-1" style={{fontFamily: 'Playfair Display, serif', fontStyle: 'italic'}}>luxe</div>
-                  <div className="uppercase text-xs tracking-[0.2em] text-gray-700 mb-1">Beauty Studio</div>
-                  <div className="italic text-gray-400 text-base mb-6">Luxury beauty. Redefined.</div>
+              {bookingDetails ? (
+                <div className="mx-auto max-w-md text-center text-black text-lg space-y-2" style={{fontFamily: 'Montserrat, sans-serif'}}>
+                  {bookingDetails.discountApplied && (
+                    <div className="mb-4 p-3 bg-gray-400 border border-gray-500 rounded-lg text-gray-900">
+                      <span className="font-bold">🎉 30% Loyalty Discount Applied! 🎉</span>
+                    </div>
+                  )}
+                  <div><span className="font-bold">Name:</span> {bookingDetails.name}</div>
+                  <div><span className="font-bold">Date:</span> {bookingDetails.date}</div>
+                  <div><span className="font-bold">Time:</span> {formatTime(bookingDetails.timeSlot)}</div>
+                  <div><span className="font-bold">Services:</span> {Array.isArray(bookingDetails.services) ? bookingDetails.services.map((s: string) => serviceLabel(s)).join(", ") : ''}</div>
+                  <div><span className="font-bold">Booking Fee:</span> {bookingDetails.fee}</div>
+                  <div className="pt-4 text-xs text-gray-400">Ticket ID: {bookingDetails.ticketId}</div>
+                  <div className="text-xs text-gray-400">Show this ticket at the studio for your appointment.</div>
                 </div>
-                {bookingDetails ? (
-                  <div className="mx-auto max-w-md text-center text-black text-lg space-y-2" style={{fontFamily: 'Montserrat, sans-serif'}}>
-                    {bookingDetails.discountApplied && (
-                      <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg text-green-800">
-                        <span className="font-bold">🎉 30% Loyalty Discount Applied! 🎉</span>
-                      </div>
-                    )}
-                    <div><span className="font-bold">Name:</span> {bookingDetails.name}</div>
-                    <div><span className="font-bold">Date:</span> {bookingDetails.date}</div>
-                    <div><span className="font-bold">Time:</span> {formatTime(bookingDetails.timeSlot)}</div>
-                    <div><span className="font-bold">Services:</span> {Array.isArray(bookingDetails.services) ? bookingDetails.services.map((s: string) => serviceLabel(s)).join(", ") : ''}</div>
-                    <div><span className="font-bold">Booking Fee:</span> {bookingDetails.fee}</div>
-                    <div className="pt-4 text-xs text-gray-400">Ticket ID: {bookingDetails.ticketId}</div>
-                    <div className="text-xs text-gray-400">Show this ticket at the studio for your appointment.</div>
-                  </div>
-                ) : (
-                  <div className="text-gray-400 italic">No booking details found.</div>
-                )}
-              </div>
-              {/* Decorative border bottom */}
-              <div className="absolute left-0 right-0 bottom-0 h-3 bg-gradient-to-r from-pink-200 via-pink-100 to-pink-200 rounded-b-2xl" />
+              ) : (
+                <div className="text-gray-400 italic">No booking details found.</div>
+              )}
             </div>
-            <Button className="mt-4 bg-pink-500 text-white hover:bg-pink-600 rounded-none shadow-lg" onClick={handleDownload}>
+          </div>
+        </div>
+        
+        <div>
+          <div className="mt-8">
+            <Button
+              onClick={handleDownload}
+              className="bg-black text-white hover:bg-gray-800 rounded-md py-3 px-8 text-base"
+            >
               Download Ticket
             </Button>
           </div>
-
-          <div className="bg-white p-8 rounded-lg shadow-glow mb-8">
-            <p className="text-gray-700 mb-6">
-              Thank you for booking with Lauryn Luxe Beauty Studio. We have received your appointment request and will
-              contact you shortly to confirm the details.
-            </p>
-
-            <p className="text-gray-700">
-              If you have any questions or need to make changes to your appointment, please contact us at{" "}
-              <span className="font-medium">0997940419</span> or{" "}
-              <span className="font-medium">lambatlauryn@gmail.com</span>.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/">
-              <Button
-                variant="outline"
-                className="border-black text-black hover:bg-black hover:text-white rounded-none"
-              >
-                Return to Home
-              </Button>
-            </Link>
-
-            <Link href="/services">
-              <Button className="bg-black text-white hover:bg-gray-800 rounded-none">Browse Our Services</Button>
-            </Link>
-          </div>
+          <p className="mt-4 text-gray-500">
+            Thank you for booking with Lauryn Luxe Beauty Studio. We have received your appointment
+          </p>
         </div>
       </div>
     </div>

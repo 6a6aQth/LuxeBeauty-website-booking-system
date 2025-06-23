@@ -258,9 +258,9 @@ export default function Booking() {
       </AnimatedSection>
 
       {/* Loyalty Program Section */}
-      <AnimatedSection className="py-12 bg-pink-50/50">
+      <AnimatedSection className="py-12 bg-gray-300">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif text-pink-800 mb-3">Our Loyalty Program</h2>
+          <h2 className="text-3xl font-serif text-gray-800 mb-3">Our Loyalty Program</h2>
           <p className="text-gray-700 max-w-xl mx-auto">
             We cherish our regular clients! As a token of our appreciation, your <span className="font-bold">6th booking comes with a 30% discount</span>. Just our little way of saying thank you for your continued trust in us.
           </p>
@@ -272,7 +272,7 @@ export default function Booking() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto" ref={bookingFormRef}>
             {step === 'form' && (
-              <div className="mb-8 p-6 bg-pink-50/50 rounded-lg border border-pink-200/50">
+              <div className="mb-8 p-6 bg-gray-300 rounded-lg border border-gray-400">
                 <h3 className="text-xl font-serif text-center mb-4">Business Hours</h3>
                 <div className="space-y-2 text-gray-700 max-w-sm mx-auto">
                   <div className="flex justify-between">
@@ -295,7 +295,7 @@ export default function Booking() {
               </div>
             )}
             <Card className="border-none shadow-glow">
-              <CardHeader className="bg-pink-50/50">
+              <CardHeader className="bg-gray-50">
                 <CardTitle className="text-2xl font-serif">
                   {step === "form" ? "Appointment Details" : "Confirm & Pay"}
                 </CardTitle>
@@ -355,7 +355,7 @@ export default function Booking() {
                               value={option.value}
                               checked={formData.services.includes(option.value)}
                               onChange={handleChange}
-                              className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500 cursor-pointer"
+                              className="h-4 w-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500 cursor-pointer"
                             />
                             <Label htmlFor={`service-${option.value}`} className="cursor-pointer">{option.label}</Label>
                           </div>
@@ -443,7 +443,7 @@ export default function Booking() {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full bg-black text-white hover:bg-gray-800 rounded-md py-3 text-base"
+                      className="w-full bg-gray-800 text-white hover:bg-gray-700 rounded-md py-3 text-base"
                       disabled={isSubmitting || !formData.date || formData.services.length === 0 || !formData.timeSlot}
                     >
                       {isSubmitting ? "Submitting..." : "Proceed to Payment"}
@@ -451,7 +451,7 @@ export default function Booking() {
                   </form>
                 ) : (
                   <div className="space-y-6">
-                    <div className="space-y-4 text-gray-800 p-4 border rounded-lg bg-pink-50/30">
+                    <div className="space-y-4 text-gray-800 p-4 border rounded-lg bg-gray-300">
                       <h3 className="font-semibold text-lg border-b pb-2">Booking Summary</h3>
                       <div className="flex justify-between"><span>Name:</span> <strong>{formData.name}</strong></div>
                       <div className="flex justify-between"><span>Date:</span> <strong>{formData.date}</strong></div>
@@ -483,7 +483,7 @@ export default function Booking() {
                     >
                       {isPaying ? "Processing..." : "Pay K10,000 Booking Fee"}
                     </Button>
-                    <Button variant="link" onClick={() => setStep('form')} className="w-full text-pink-500">
+                    <Button variant="link" onClick={() => setStep('form')} className="w-full text-gray-500">
                       Go Back to Edit
                     </Button>
                   </div>
@@ -495,13 +495,13 @@ export default function Booking() {
       </AnimatedSection>
 
       {/* Additional Information */}
-      <AnimatedSection className="py-20 bg-nude-light" delay={0.4}>
+      <AnimatedSection className="py-20 bg-gray-300" delay={0.4}>
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-serif mb-8 text-center">Booking Information</h2>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <Card className="border-none shadow-soft">
+              <Card className="bg-white shadow-md">
                 <CardHeader>
                   <CardTitle>Appointment Policies</CardTitle>
                 </CardHeader>
@@ -521,7 +521,7 @@ export default function Booking() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-soft">
+              <Card className="bg-white shadow-md">
                 <CardHeader>
                   <CardTitle>Business Hours</CardTitle>
                 </CardHeader>

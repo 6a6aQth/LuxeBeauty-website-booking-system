@@ -108,8 +108,8 @@ export default function NewsletterForm() {
           <p className="text-sm text-gray-500">
             {isLoading ? 'Loading...' : `${subscribers.length} subscriber(s)`}
           </p>
-          <Button type="submit" disabled={!subject || !content || subscribers.length === 0}>
-            Send Newsletter
+          <Button type="submit" disabled={!subject || !content || subscribers.length === 0 || isSending}>
+            {isSending ? 'Sending...' : 'Send Newsletter'}
           </Button>
         </div>
       </form>

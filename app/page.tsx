@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Instagram } from "lucide-react"
 import { TiktokIcon } from "@/components/tiktok-icon"
 import { AnimatedSection } from "@/components/ui/animated-section"
@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] w-full bg-gradient-to-r from-white to-pink-light flex items-center">
+      <section className="relative h-[80vh] min-h-[600px] w-full bg-gradient-to-r from-white to-gray-300 flex items-center">
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-3xl mx-auto text-center">
             <div className="mb-8">
@@ -224,6 +224,36 @@ export default function Home() {
             <div className="max-w-md mx-auto">
               <NewsletterSignup />
             </div>
+          </div>
+        </div>
+      </AnimatedSection>
+
+      {/* Booking Information Section */}
+      <AnimatedSection className="py-20 bg-gray-300">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-serif mb-8 text-center">Booking Information</h2>
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appointment Policies</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-2"><strong>Late Arrivals:</strong> If you arrive more than 15 minutes late, we may need to reschedule your appointment.</p>
+                <p><strong>Confirmation:</strong> We'll contact you to confirm your appointment after you submit your request.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Hours</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <p>Monday - Friday: 10:00 AM - 6:00 PM</p>
+                  <p>Saturday: 10:00 AM - 4:00 PM</p>
+                  <p>Sunday: Closed</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </AnimatedSection>

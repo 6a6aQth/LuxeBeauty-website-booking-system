@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import prisma from '@/lib/prisma';
+import { renderNewsletterEmail } from '@/emails/newsletter-template';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,18 +18,27 @@ export async function POST(req: NextRequest) {
       select: { email: true },
     });
 
-    const emails = subscribers.map(s => s.email);
-
-    if (emails.length === 0) {
+    if (subscribers.length === 0) {
       return NextResponse.json({ message: 'No subscribers to send to.' }, { status: 200 });
     }
 
-    const { data, error } = await resend.emails.send({
-      from: 'Luxe Beauty Studio <onboarding@resend.dev>', // Replace with your verified domain
-      to: emails,
-      subject: subject,
-      html: `<p>${content}</p>`, // In a real app, you'd use a nice HTML template here
-    });
+    const emailsToSend = await Promise.all(
+      subscribers.map(async (subscriber) => {
+        const unsubscribeUrl = `${baseUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
+        const htmlBody = await renderNewsletterEmail({ subject, content, unsubscribeUrl });
+        const textBody = `${subject}\n\n${content}\n\nUnsubscribe here: ${unsubscribeUrl}`;
+
+        return {
+          from: 'Lauryn Luxe Beauty Studio <noreply@laurynluxebeautystudio.com>',
+          to: subscriber.email,
+          subject: subject,
+          html: htmlBody,
+          text: textBody,
+        };
+      })
+    );
+
+    const { data, error } = await resend.batch.send(emailsToSend);
 
     if (error) {
       console.error('Resend error:', error);
