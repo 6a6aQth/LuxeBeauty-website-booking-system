@@ -6,72 +6,88 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
+interface Subscriber {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
 export default function NewsletterForm() {
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
-  const [subscribers, setSubscribers] = useState<string[]>([]);
-  const [isSending, setIsSending] = useState(false);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedSubscribers = localStorage.getItem('llb-newsletter-subs');
-    if (storedSubscribers) {
-      setSubscribers(JSON.parse(storedSubscribers));
-    }
+    const fetchSubscribers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/newsletter/subscribers');
+        if (response.ok) {
+          const data = await response.json();
+          setSubscribers(data);
+        } else {
+          toast({
+            title: "Error",
+            description: "Could not load subscribers.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred while fetching subscribers.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSubscribers();
   }, []);
 
-  const handleSend = () => {
-    if (!subject || !content) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill out both the subject and content.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSending(true);
-    
-    // This is a simulation. In a real app, you'd have a backend to send emails.
-    setTimeout(() => {
-      toast({
-        title: "Newsletter Sent (Simulation)",
-        description: `Your newsletter titled "${subject}" would have been sent to ${subscribers.length} subscribers.`,
-      });
-      setSubject('');
-      setContent('');
-      setIsSending(false);
-    }, 1500);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // This is a placeholder for a real email sending service (e.g., Resend, SendGrid)
+    console.log("Sending newsletter:", { subject, content, subscribers });
+    toast({
+      title: "Newsletter Sent (Simulated)",
+      description: `The newsletter would be sent to ${subscribers.length} subscriber(s).`,
+    });
   };
 
   return (
-    <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-6 shadow">
-      <h2 className="text-xl font-serif mb-4">Create Newsletter</h2>
-      <div className="space-y-4">
-        <Input
-          type="text"
-          placeholder="Newsletter Subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          className="bg-white"
-          disabled={isSending}
-        />
-        <Textarea
-          placeholder="Write your newsletter content here..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={10}
-          className="bg-white"
-          disabled={isSending}
-        />
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-serif mb-4">Create Newsletter</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Input
+            type="text"
+            placeholder="Newsletter Subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full"
+            required
+          />
+        </div>
+        <div>
+          <Textarea
+            placeholder="Write your newsletter content here..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[200px]"
+            required
+          />
+        </div>
         <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-600">
-            {subscribers.length} subscriber(s)
+          <p className="text-sm text-gray-500">
+            {isLoading ? 'Loading...' : `${subscribers.length} subscriber(s)`}
           </p>
-          <Button onClick={handleSend} disabled={isSending}>
-            {isSending ? 'Sending...' : 'Send Newsletter'}
+          <Button type="submit" disabled={!subject || !content || subscribers.length === 0}>
+            Send Newsletter
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 } 
