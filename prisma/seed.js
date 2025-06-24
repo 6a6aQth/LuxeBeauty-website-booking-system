@@ -53,6 +53,7 @@ async function main() {
           name: service.name,
           price: service.price,
           description: service.description,
+          duration: 60,
           category: category,
           image: serviceImages[category],
         },

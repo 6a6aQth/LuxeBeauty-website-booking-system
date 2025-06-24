@@ -19,6 +19,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/services", label: "Services" },
+  { href: "/prices", label: "Prices" },
   { href: "/booking", label: "Booking" },
   { href: "/contact", label: "Contact" },
 ]
@@ -42,7 +43,9 @@ const Header = () => {
                 key={link.href}
                 href={link.href}
                 className={`text-sm font-medium transition-colors hover:text-pink-500 ${
-                  pathname === link.href ? "text-pink-600 font-bold" : "text-gray-600"
+                  pathname === link.href
+                    ? "text-pink-600 font-bold"
+                    : "text-gray-600"
                 }`}
               >
                 {link.label}
@@ -89,7 +92,9 @@ const Header = () => {
                         href={link.href}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={`font-medium transition-colors hover:text-pink-500 ${
-                          pathname === link.href ? "text-pink-600 font-bold" : "text-gray-700"
+                          pathname === link.href
+                            ? "text-pink-600 font-bold"
+                            : "text-gray-700"
                         }`}
                       >
                         {link.label}

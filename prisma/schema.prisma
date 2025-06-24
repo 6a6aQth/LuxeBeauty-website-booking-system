@@ -42,6 +42,7 @@ model Service {
   name        String
   description String?
   price       Int
+  duration    Int // Duration in minutes
   category    String // e.g., 'manicure', 'pedicure'
   image       String?
   createdAt   DateTime @default(now())
