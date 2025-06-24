@@ -2,11 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Playfair_Display, Montserrat } from "next/font/google"
 import "./globals.css"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-import WhatsAppButton from "@/components/whatsapp-button"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import LayoutProvider from "@/components/layout-provider"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -38,12 +36,7 @@ export default function RootLayout({
         style={{ overflowX: "hidden" }}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <WhatsAppButton />
-          </div>
+          <LayoutProvider>{children}</LayoutProvider>
           <Toaster />
         </ThemeProvider>
       </body>

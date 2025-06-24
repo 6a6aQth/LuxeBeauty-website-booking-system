@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ShineBorder } from "@/components/ui/shine-border";
+import { WavyBackground } from "@/components/ui/wavy-background";
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
 
@@ -313,8 +314,14 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-        <Card className="relative w-full max-w-md p-8 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+      <WavyBackground
+        containerClassName="h-full flex flex-col items-center justify-center"
+        className="p-4"
+        colors={["#111111", "#222222", "#000000"]}
+        waveOpacity={0.3}
+        backgroundFill="black"
+      >
+        <Card className="relative w-full max-w-sm p-6 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
           <ShineBorder borderWidth={2} shineColor="hsl(var(--primary))" />
           <CardHeader className="text-center">
             <Logo />
@@ -340,7 +347,7 @@ export default function AdminPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </WavyBackground>
     )
   }
 
