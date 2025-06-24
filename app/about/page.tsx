@@ -2,19 +2,15 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AnimatedSection } from "@/components/ui/animated-section"
+import { PageHeader } from "@/components/page-header"
 
 export default function About() {
   return (
-    <div>
-      {/* Page Header */}
-      <AnimatedSection className="bg-black text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif mb-4">About Our Studio</h1>
-          <p className="text-gray-300 max-w-2xl mx-auto">
-            Where luxury, precision, and personalized care converge to create an unforgettable beauty experience.
-          </p>
-        </div>
-      </AnimatedSection>
+    <div className="bg-white">
+      <PageHeader
+        title="About Our Studio"
+        description="Where luxury, precision, and personalized care converge to create an unforgettable beauty experience."
+      />
 
       {/* About Lauryn Section */}
       <AnimatedSection className="py-20 bg-gray-200" delay={0.2}>

@@ -3,6 +3,7 @@ import { Instagram, Phone, Mail, MapPin, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TiktokIcon } from "@/components/tiktok-icon"
 import { AnimatedSection } from "@/components/ui/animated-section"
+import { PageHeader } from "@/components/page-header"
 
 export default function Contact() {
   const address = "Lauryn Luxe Beauty Studio, Blantyre, Malawi"
@@ -10,16 +11,10 @@ export default function Contact() {
 
   return (
     <div>
-      {/* Page Header */}
-      <AnimatedSection className="bg-black text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif mb-4">Contact Us</h1>
-          <p className="text-gray-300 max-w-2xl mx-auto">
-            Get in touch with Lauryn Luxe Beauty Studio. We're here to answer your questions and help you book your
-            appointment.
-          </p>
-        </div>
-      </AnimatedSection>
+      <PageHeader
+        title="Contact Us"
+        description="Get in touch with Lauryn Luxe Beauty Studio. We're here to answer your questions and help you book your appointment."
+      />
 
       {/* Contact Information */}
       <AnimatedSection className="py-20 bg-white" delay={0.2}>
