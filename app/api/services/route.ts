@@ -16,26 +16,51 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
+  try {
+    const { services } = await req.json();
+
+    if (!Array.isArray(services)) {
+      return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
+    }
+
+    const updatePromises = services.map(service =>
+      prisma.service.update({
+        where: { id: service.id },
+        data: {
+          name: service.name,
+          description: service.description,
+          duration: service.duration,
+          category: service.category,
+        },
+      })
+    );
+
+    await prisma.$transaction(updatePromises);
+
+    return NextResponse.json({ message: 'Services updated successfully' });
+  } catch (error) {
+    console.error('Failed to update services:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { services }: { services: { id: string; price: number }[] } = body;
+        const { name, description, duration, category } = body;
 
-        if (!services || !Array.isArray(services)) {
-            return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-        }
+        const newService = await prisma.service.create({
+            data: {
+                name,
+                description,
+                duration,
+                category,
+            },
+        });
 
-        const updatePromises = services.map(service =>
-            prisma.service.update({
-                where: { id: service.id },
-                data: { price: service.price },
-            })
-        );
-
-        await prisma.$transaction(updatePromises);
-
-        return NextResponse.json({ message: 'Prices updated successfully' });
+        return NextResponse.json(newService, { status: 201 });
     } catch (error) {
-        console.error('Failed to update prices:', error);
+        console.error('Failed to create service:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 } 

@@ -15,6 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -30,15 +31,24 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ShineBorder } from "@/components/ui/shine-border";
 import { WavyBackground } from "@/components/ui/wavy-background";
+import { PlusCircle, Edit, Trash2 } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
 
 interface Service {
   id: string;
   name: string;
-  price: number;
+  description: string | null;
+  duration: number;
   category: string;
-  discountApplied?: boolean;
 }
 
 interface Booking {
@@ -56,6 +66,23 @@ interface Booking {
 interface UnavailableDate {
   date: string;
   timeSlots: string[];
+}
+
+const serviceCategories = [
+  'all',
+  'manicure',
+  'pedicure',
+  'refills',
+  'nail-art',
+  'soak-off',
+]
+
+const emptyService: Service = {
+  id: '',
+  name: '',
+  description: '',
+  duration: 60,
+  category: 'manicure',
 }
 
 export default function AdminPage() {
@@ -77,61 +104,51 @@ export default function AdminPage() {
   const [priceListUrl, setPriceListUrl] = useState('')
   const [priceListFile, setPriceListFile] = useState<File | null>(null)
   const [isSavingPriceList, setIsSavingPriceList] = useState(false)
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false)
+  const [editingService, setEditingService] = useState<Service | null>(null)
+  const [isDeletingService, setIsDeletingService] = useState<Service | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
+  const fetchAdminData = async () => {
+    try {
+      const [bookingsRes, unavailableRes, servicesRes, priceListRes] =
+        await Promise.all([
+          fetch('/api/bookings'),
+          fetch('/api/unavailable-dates'),
+          fetch('/api/services'),
+          fetch('/api/price-list'),
+        ])
+
+      if (bookingsRes.ok) setBookings(await bookingsRes.json())
+      if (unavailableRes.ok) setUnavailableDates(await unavailableRes.json())
+      if (servicesRes.ok) setServices(await servicesRes.json())
+      if (priceListRes.ok) {
+        const data = await priceListRes.json()
+        setPriceListUrl(data.priceListUrl)
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin data', error)
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   useEffect(() => {
-    if (sessionStorage.getItem("llb_admin_auth") === "true") {
+    if (sessionStorage.getItem('llb_admin_auth') === 'true') {
       setIsAuthenticated(true)
     }
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) return
-
-    const fetchAdminData = async () => {
-      try {
-        const [bookingsRes, unavailableRes, servicesRes] = await Promise.all([
-          fetch('/api/bookings'),
-          fetch('/api/unavailable-dates'),
-          fetch('/api/services'),
-        ]);
-
-        if (bookingsRes.ok) {
-          const bookingsData = await bookingsRes.json();
-          setBookings(bookingsData);
-        } else {
-          toast({ title: "Error", description: "Failed to fetch bookings.", variant: "destructive" });
-        }
-
-        if (unavailableRes.ok) {
-          const unavailableData = await unavailableRes.json();
-          setUnavailableDates(unavailableData);
-        } else {
-           toast({ title: "Error", description: "Failed to fetch unavailable dates.", variant: "destructive" });
-        }
-
-        if (servicesRes.ok) {
-            const servicesData = await servicesRes.json();
-            setServices(servicesData);
-        } else {
-            toast({ title: "Error", description: "Failed to fetch services.", variant: "destructive" });
-        }
-
-        const priceListRes = await fetch('/api/price-list');
-        if (priceListRes.ok) {
-            const priceListData = await priceListRes.json();
-            setPriceListUrl(priceListData.priceListUrl);
-        }
-
-      } catch (error) {
-        console.error("Failed to fetch admin data", error);
-        toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
-      }
-    };
-
-    fetchAdminData();
-  }, [isAuthenticated]);
+    if (isAuthenticated) {
+      fetchAdminData()
+    }
+  }, [isAuthenticated])
 
   const handlePriceChange = (id: string, newPrice: string) => {
     const price = parseInt(newPrice, 10);
@@ -354,6 +371,76 @@ export default function AdminPage() {
     setIsModalOpen(true);
   };
 
+  const handleOpenServiceModal = (service: Service | null) => {
+    setEditingService(service ? { ...service } : { ...emptyService })
+    setIsServiceModalOpen(true)
+  }
+
+  const handleSaveService = async () => {
+    if (!editingService) return
+
+    const { id, name, description, duration, category } = editingService
+
+    const url = id ? `/api/services/${id}` : '/api/services'
+    const method = id ? 'PUT' : 'POST'
+    const body = JSON.stringify({ name, description, duration, category })
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      })
+
+      if (!response.ok) throw new Error('Failed to save service')
+
+      toast({
+        title: 'Success',
+        description: `Service has been ${id ? 'updated' : 'created'}.`,
+      })
+      setIsServiceModalOpen(false)
+      setEditingService(null)
+      fetchAdminData()
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not save service.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteService = async () => {
+    if (!isDeletingService) return
+
+    try {
+      const response = await fetch(`/api/services/${isDeletingService.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete service')
+      }
+
+      toast({ title: 'Success', description: 'Service has been deleted.' })
+      setIsDeletingService(null)
+      fetchAdminData() // Refresh data
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not delete service.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const filteredServices = useMemo(() => {
+    if (categoryFilter === 'all') {
+      return services
+    }
+    return services.filter((service) => service.category === categoryFilter)
+  }, [services, categoryFilter])
+
   if (!isAuthenticated) {
     return (
       <WavyBackground
@@ -405,9 +492,75 @@ export default function AdminPage() {
       </header>
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          
-          <div className="lg:col-span-1 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Manage Services</CardTitle>
+                  <CardDescription>
+                    Add, edit, or delete your service offerings.
+                  </CardDescription>
+                </div>
+                <div className="flex w-full sm:w-auto items-center gap-4">
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat} className="capitalize">
+                          {cat.replace('-', ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => handleOpenServiceModal(null)} className="w-full sm:w-auto">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Service
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <div className="space-y-4">
+                    {filteredServices.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm"
+                      >
+                        <div>
+                          <p className="font-semibold">{service.name}</p>
+                          <p className="text-sm text-gray-500 capitalize">
+                            {service.category.replace('-', ' ')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleOpenServiceModal(service)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => setIsDeletingService(service)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-serif">Manage Availability</CardTitle>
@@ -439,39 +592,6 @@ export default function AdminPage() {
             </Card>
 
             <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-serif">Manage Service Prices</CardTitle>
-                    <CardDescription>Update the prices for your services.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[400px] pr-4 -mr-4">
-                        <div className="space-y-4">
-                            {services.map(service => (
-                                <div key={service.id} className="flex justify-between items-center gap-4">
-                                    <Label htmlFor={`price-${service.id}`} className="flex-1">{service.name}</Label>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-gray-500">MK</span>
-                                      <Input
-                                          id={`price-${service.id}`}
-                                          type="number"
-                                          value={service.price}
-                                          onChange={(e) => handlePriceChange(service.id, e.target.value)}
-                                          className="w-28"
-                                      />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-                <CardContent>
-                    <Button onClick={handleSaveChanges} disabled={isSavingPrices} className="w-full">
-                        {isSavingPrices ? 'Saving...' : 'Save Prices'}
-                    </Button>
-                </CardContent>
-            </Card>
-
-            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-serif">Newsletter</CardTitle>
                 <CardDescription>Send a message to all subscribers.</CardDescription>
@@ -480,11 +600,15 @@ export default function AdminPage() {
                 <NewsletterForm />
               </CardContent>
             </Card>
+          </div>
 
+          <div className="lg:col-span-1 space-y-8">
             <Card>
               <CardHeader>
                 <CardTitle>Update Price List</CardTitle>
-                <CardDescription>Change the image for the prices page.</CardDescription>
+                <CardDescription>
+                  Change the image for the prices page.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -492,23 +616,35 @@ export default function AdminPage() {
                   <Input
                     id="price-list-file"
                     type="file"
-                    onChange={(e) => setPriceListFile(e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      setPriceListFile(e.target.files?.[0] || null)
+                    }
                     accept="image/*"
                   />
                   {priceListUrl && !priceListFile && (
                     <div className="mt-2 text-sm text-gray-500">
-                      Current image: <a href={priceListUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline">View</a>
+                      Current image:{' '}
+                      <a
+                        href={priceListUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pink-500 hover:underline"
+                      >
+                        View
+                      </a>
                     </div>
                   )}
                 </div>
-                <Button onClick={handleSavePriceList} disabled={isSavingPriceList} className="w-full mt-4">
+                <Button
+                  onClick={handleSavePriceList}
+                  disabled={isSavingPriceList}
+                  className="w-full mt-4"
+                >
                   {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
                 </Button>
               </CardContent>
             </Card>
-          </div>
 
-          <div className="lg:col-span-1 space-y-8">
             <Card className="shadow-lg">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -532,7 +668,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[1200px] pr-4 -mr-4">
+                <ScrollArea className="h-auto max-h-[1200px] pr-4 -mr-4">
                   <div className="space-y-6">
                     {filteredBookings.length > 0 ? (
                       filteredBookings.map((booking) => (
@@ -628,6 +764,99 @@ export default function AdminPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveAvailability}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isServiceModalOpen}
+        onOpenChange={setIsServiceModalOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingService?.id ? 'Edit Service' : 'Add New Service'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input
+              placeholder="Service Name"
+              value={editingService?.name || ''}
+              onChange={(e) =>
+                setEditingService({ ...editingService!, name: e.target.value })
+              }
+            />
+            <Textarea
+              placeholder="Description"
+              value={editingService?.description || ''}
+              onChange={(e) =>
+                setEditingService({
+                  ...editingService!,
+                  description: e.target.value,
+                })
+              }
+            />
+            <Input
+              type="number"
+              placeholder="Duration (minutes)"
+              value={editingService?.duration || ''}
+              onChange={(e) =>
+                setEditingService({
+                  ...editingService!,
+                  duration: parseInt(e.target.value, 10) || 0,
+                })
+              }
+            />
+            <Select
+              value={editingService?.category || ''}
+              onValueChange={(value) =>
+                setEditingService({ ...editingService!, category: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {serviceCategories
+                  .filter((c) => c !== 'all')
+                  .map((cat) => (
+                    <SelectItem key={cat} value={cat} className="capitalize">
+                      {cat.replace('-', ' ')}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSaveService}>Save Service</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!isDeletingService}
+        onOpenChange={() => setIsDeletingService(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the service "{isDeletingService?.name}". This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeletingService(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteService}
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -98,9 +98,14 @@ export default async function ServicesPage() {
                       <div className="space-y-4">
                         {groupedServices[category].map((service: Service) => (
                           <Card key={service.id} className="border-none shadow-md bg-white/90">
-                            <CardContent className="p-4 flex justify-between items-center">
-                              <h3 className="font-medium">{service.name}</h3>
-                              <p className="font-serif text-gray-800">MK{formatPrice(service.price)}</p>
+                            <CardContent className="p-4">
+                              <h3 className="font-medium text-lg mb-2">{service.name}</h3>
+                              <p className="text-gray-600 text-sm">
+                                {service.description}
+                              </p>
+                              <p className="text-sm text-gray-500 mt-2">
+                                Duration: {service.duration} minutes
+                              </p>
                             </CardContent>
                           </Card>
                         ))}
