@@ -1,128 +1,175 @@
 import Image from "next/image"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { AnimatedSection } from "@/components/ui/animated-section"
 import { PageHeader } from "@/components/page-header"
+import { Timeline } from "@/components/ui/timeline"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
-export default function About() {
+const timelineData = [
+  {
+    tag: "Our Mission",
+    title: "Precision & Excellence",
+    content: (
+      <>
+        <p className="mb-4">
+          At Lauryn Luxe, we believe that excellence lies in the details. Every
+          service we provide is executed with meticulous precision and unwavering
+          attention to detail. We take pride in our craftsmanship and strive for
+          perfection in every nail we touch.
+        </p>
+        <Image
+          src="/IMG_7429.png"
+          alt="Precision nail art"
+          width={400}
+          height={300}
+          className="rounded-lg object-cover w-full"
+        />
+      </>
+    ),
+  },
+  {
+    tag: "Our Vision",
+    title: "Elegance & Sophistication",
+    content: (
+      <>
+        <p className="mb-4">
+          Elegance is at the heart of our aesthetic. We embrace sophisticated
+          designs, clean lines, and timeless beauty. Our work reflects a refined
+          taste that enhances your natural beauty while making a statement of
+          quiet confidence.
+        </p>
+        <Image
+          src="/IMG_9067.png"
+          alt="Elegant nail design"
+          width={400}
+          height={300}
+          className="rounded-lg object-cover w-full"
+        />
+      </>
+    ),
+  },
+  {
+    tag: "Our Promise",
+    title: "Self-Care & Wellness",
+    content: (
+      <>
+        <p className="mb-4">
+          We view beauty rituals as essential acts of self-care. Our studio
+          provides a sanctuary where you can disconnect from the outside world and
+          focus on your wellbeing. Every treatment is designed to nurture both
+          your physical appearance and inner peace.
+        </p>
+        <Image
+          src="/pedicure.jpg"
+          alt="Relaxing pedicure session"
+          width={400}
+          height={300}
+          className="rounded-lg object-cover w-full"
+        />
+      </>
+    ),
+  },
+  {
+    tag: "Our Commitment",
+    title: "Premium Experience",
+    content: (
+      <>
+        <p className="mb-4">
+          From the moment you enter our studio to the moment you leave, we are
+          committed to providing a premium experience. We use only the finest
+          products, maintain impeccable hygiene standards, and offer personalized
+          attention to ensure your complete satisfaction.
+        </p>
+        <Image
+          src="/IMG_7186.png"
+          alt="Premium studio experience"
+          width={400}
+          height={300}
+          className="rounded-lg object-cover w-full"
+        />
+      </>
+    ),
+  },
+]
+
+export default function AboutPage() {
   return (
-    <div className="bg-white">
+    <div>
       <PageHeader
-        title="About Our Studio"
-        description="Where luxury, precision, and personalized care converge to create an unforgettable beauty experience."
+        title="About Lauryn Luxe Beauty"
+        description="A sanctuary for nail care artistry and the pursuit of elegance."
       />
-
-      {/* About Lauryn Section */}
-      <AnimatedSection className="py-20 bg-gray-200" delay={0.2}>
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-glow">
-                <Image src="/IMG_7705.png" alt="Lauryn Lambat" fill className="object-cover" />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-3xl font-serif mb-6">About Lauryn</h2>
-              <p className="text-gray-700 mb-4">
-                Lauryn Lambat is the creative force and founder behind Lauryn Luxe Beauty Studio. With a background in
-                beauty and a passion for nail artistry, Lauryn established her studio in 2022 with a vision to redefine
-                luxury beauty experiences in Blantyre.
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="w-full h-auto">
+            <Image
+              src="/IMG_9745.png"
+              alt="Beautifully manicured hands with intricate red nail art"
+              width={800}
+              height={1000}
+              className="rounded-lg object-cover shadow-lg"
+            />
+          </div>
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              About Lauryn
+            </h2>
+            <div className="space-y-4 text-neutral-600 dark:text-neutral-400">
+              <p>
+                Lauryn Lambat is the creative force and founder behind Lauryn
+                Luxe Beauty Studio. With a background in beauty and a passion
+                for nail artistry, Lauryn established her studio in 2022 with a
+                vision to redefine luxury beauty experiences in Blantyre.
               </p>
-              <p className="text-gray-700 mb-4">
-                Her journey began with a simple belief: that beauty rituals should be moments of self-care, luxury, and
-                personal expression. This philosophy guides every aspect of the studio's operations, from the serene
-                ambiance to the meticulous attention given to each client.
+              <p>
+                Her journey began with a simple belief: that beauty rituals
+                should be moments of self-care, luxury, and personal
+                expression. This philosophy guides every aspect of the
+                studio&apos;s operations, from the serene ambiance to the
+                meticulous attention given to each client.
               </p>
-              <p className="text-gray-700 mb-4">
-                Lauryn's expertise and artistic eye have earned her a reputation for excellence. She continuously hones
-                her craft by staying updated with the latest techniques and trends in the beauty industry, ensuring that
-                her clients receive nothing but the best.
+              <p>
+                Lauryn's expertise and artistic eye have earned her a reputation
+                for excellence. She continuously hones her craft by staying
+                updated with the latest techniques and trends in the beauty
+                industry, ensuring that her clients receive nothing but the
+                best.
               </p>
-              <p className="text-gray-700">
-                Beyond her technical skills, Lauryn is known for her warm personality and ability to make every client
-                feel valued and comfortable. She believes that true beauty comes from feeling confident and cared for,
-                and she strives to create this experience for everyone who visits her studio.
+              <p>
+                Beyond her technical skills, Lauryn is known for her warm
+                personality and ability to make every client feel valued and
+                comfortable. She believes that true beauty comes from feeling
+                confident and cared for, and she strives to create this
+                experience for everyone who visits her studio.
               </p>
             </div>
           </div>
         </div>
-      </AnimatedSection>
+      </div>
 
-      {/* Studio Philosophy */}
-      <AnimatedSection className="py-20 bg-gray-200" delay={0.2}>
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif mb-12 text-center">Studio Philosophy</h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-serif mb-3">Precision & Excellence</h3>
-              <p className="text-gray-600">
-                At Lauryn Luxe, we believe that excellence lies in the details. Every service we provide is executed
-                with meticulous precision and unwavering attention to detail. We take pride in our craftsmanship and
-                strive for perfection in every nail we touch.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-serif mb-3">Elegance & Sophistication</h3>
-              <p className="text-gray-600">
-                Elegance is at the heart of our aesthetic. We embrace sophisticated designs, clean lines, and timeless
-                beauty. Our work reflects a refined taste that enhances your natural beauty while making a statement
-                of quiet confidence.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-serif mb-3">Self-Care & Wellness</h3>
-              <p className="text-gray-600">
-                We view beauty rituals as essential acts of self-care. Our studio provides a sanctuary where you can
-                disconnect from the outside world and focus on your wellbeing. Every treatment is designed to nurture
-                both your physical appearance and inner peace.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-lg shadow-sm">
-              <h3 className="text-xl font-serif mb-3">Premium Experience</h3>
-              <p className="text-gray-600">
-                From the moment you enter our studio to the moment you leave, we are committed to providing a premium
-                experience. We use only the finest products, maintain impeccable hygiene standards, and offer
-                personalized attention to ensure your complete satisfaction.
-              </p>
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Studio Images */}
-      <AnimatedSection className="py-20 bg-white" delay={0.6}>
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-serif mb-12 text-center">Our Studio</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-soft">
-              <Image src="/IMG_7186.png" alt="Studio Interior" fill className="object-cover" />
-            </div>
-            <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-soft">
-              <Image src="/IMG_7410.png" alt="Nail Station" fill className="object-cover" />
-            </div>
-            <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-soft">
-              <Image src="/IMG_7429.png" alt="Relaxation Area" fill className="object-cover" />
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* CTA Section */}
-      <AnimatedSection className="py-20 bg-black text-white" delay={0.8}>
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-serif mb-6">Experience Luxury Beauty</h2>
-          <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-            We invite you to visit Lauryn Luxe Beauty Studio and experience our philosophy in action. Book your
-            appointment today and discover the difference.
-          </p>
-          <Link href="/booking">
-            <Button className="bg-white text-black hover:bg-gray-200 rounded-none px-8 py-6 text-base">
-              Book Your Appointment
-            </Button>
-          </Link>
-        </div>
-      </AnimatedSection>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+          Our Philosophy
+        </h2>
+        <Timeline data={timelineData} />
+      </div>
+      <div className="bg-black text-white py-20 text-center">
+        <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          Experience Luxury Beauty
+        </h2>
+        <p className="max-w-2xl mx-auto mb-8 text-neutral-300">
+          We invite you to visit Lauryn Luxe Beauty Studio and experience our
+          philosophy in action. Book your appointment today and discover the
+          difference.
+        </p>
+        <Link href="/booking">
+          <Button
+            variant="outline"
+            className="bg-white text-black hover:bg-neutral-200"
+          >
+            Book Your Appointment
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }

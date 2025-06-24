@@ -36,6 +36,8 @@
 
     --brand-blush: 350 70% 96%;
     --brand-blush-foreground: 350 50% 30%;
+
+    --font-serif: "Playfair Display", serif;
   }
 
   .dark {
