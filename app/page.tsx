@@ -27,11 +27,11 @@ export default function Home() {
               Experience premium nail care and beauty services in the heart of Blantyre.
             </p>
             <div className="flex justify-center">
-              <Link href="/booking">
+            <Link href="/booking">
                 <PulsatingButton className="bg-black text-white hover:bg-gray-800 rounded-none px-6 py-4 text-base">
-                  Book Appointment
+                Book Appointment
                 </PulsatingButton>
-              </Link>
+            </Link>
             </div>
           </div>
         </div>

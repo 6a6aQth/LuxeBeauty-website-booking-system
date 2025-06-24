@@ -324,7 +324,7 @@ export default function AdminPage() {
         <Card className="relative w-full max-w-sm p-6 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
           <ShineBorder borderWidth={2} shineColor="hsl(var(--primary))" />
           <CardHeader className="text-center">
-            <Logo />
+              <Logo />
             <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription>Enter your password to access the admin dashboard.</CardDescription>
           </CardHeader>
