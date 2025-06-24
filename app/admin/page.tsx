@@ -61,6 +61,8 @@ interface Booking {
   phone: string;
   email?: string;
   discountApplied?: boolean;
+  inspirationPhotos?: string[];
+  notes?: string;
 }
 
 interface UnavailableDate {
@@ -109,6 +111,13 @@ export default function AdminPage() {
   const [isDeletingService, setIsDeletingService] = useState<Service | null>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
 
+  // State to prevent hydration errors
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
   const fetchAdminData = async () => {
@@ -139,10 +148,10 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (sessionStorage.getItem('llb_admin_auth') === 'true') {
+    if (isClient && sessionStorage.getItem('llb_admin_auth') === 'true') {
       setIsAuthenticated(true)
     }
-  }, [])
+  }, [isClient])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -441,16 +450,19 @@ export default function AdminPage() {
     return services.filter((service) => service.category === categoryFilter)
   }, [services, categoryFilter])
 
+  if (!isClient) {
+    return null; // Render nothing on the server/first-client render
+  }
+
   if (!isAuthenticated) {
     return (
       <WavyBackground
-        containerClassName="h-full flex flex-col items-center justify-center"
         className="p-4"
         colors={["#111111", "#222222", "#000000"]}
         waveOpacity={0.3}
         backgroundFill="black"
       >
-        <Card className="relative w-full max-w-sm p-6 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+        <Card className="relative max-w-sm p-6 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
           <ShineBorder borderWidth={2} shineColor="hsl(var(--primary))" />
           <CardHeader className="text-center">
               <Logo />
@@ -695,6 +707,35 @@ export default function AdminPage() {
                                {booking.email && <p className="text-gray-600">{booking.email}</p>}
                             </div>
                           </div>
+                          {(booking.inspirationPhotos && booking.inspirationPhotos.length > 0) || booking.notes ? (
+                            <>
+                              <Separator className="my-3" />
+                              <div className="space-y-2 text-sm">
+                                {booking.notes && (
+                                  <div>
+                                    <p className="font-semibold text-gray-700">Notes</p>
+                                    <p className="text-gray-600 whitespace-pre-wrap">{booking.notes}</p>
+                                  </div>
+                                )}
+                                {booking.inspirationPhotos && booking.inspirationPhotos.length > 0 && (
+                                  <div>
+                                    <p className="font-semibold text-gray-700">Inspiration Photos</p>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                      {booking.inspirationPhotos.map((photoUrl, index) => (
+                                        <a key={index} href={photoUrl} target="_blank" rel="noopener noreferrer">
+                                          <img
+                                            src={photoUrl}
+                                            alt={`Inspiration ${index + 1}`}
+                                            className="w-16 h-16 object-cover rounded-md border"
+                                          />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          ) : null}
                           <Separator className="my-3" />
                           <p className="text-xs text-gray-500">Booking ID: {booking.ticketId}</p>
                         </div>

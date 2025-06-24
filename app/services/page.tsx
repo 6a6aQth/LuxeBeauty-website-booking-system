@@ -8,6 +8,8 @@ import prisma from "@/lib/prisma"
 import type { Service } from "@prisma/client"
 import { PageHeader } from "@/components/page-header"
 
+export const dynamic = 'force-dynamic'
+
 // Helper to format price with commas
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('en-US').format(price);

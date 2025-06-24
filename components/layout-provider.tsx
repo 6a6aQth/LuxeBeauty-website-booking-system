@@ -12,7 +12,11 @@ export default function LayoutProvider({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const isAdminPage = pathname === '/admin'
+  const isAdminLogin = pathname === '/admin'
+
+  if (isAdminLogin) {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
