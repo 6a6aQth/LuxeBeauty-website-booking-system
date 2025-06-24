@@ -26,6 +26,7 @@
     --accent-foreground: 0 0% 9%;
 
     --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
@@ -60,6 +61,7 @@
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
@@ -86,4 +88,20 @@
 
 .gradient-bg {
   background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+}
+
+@theme inline {
+  --animate-shine: shine var(--duration) infinite linear;
+ 
+  @keyframes shine {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    to {
+      background-position: 0% 0%;
+    }
+  }
 }

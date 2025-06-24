@@ -28,6 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { ShineBorder } from "@/components/ui/shine-border";
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
 
@@ -286,11 +287,7 @@ export default function AdminPage() {
       sessionStorage.setItem("llb_admin_auth", "true")
       setIsAuthenticated(true)
     } else {
-      toast({
-        title: "Authentication Failed",
-        description: "The password you entered is incorrect.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Incorrect password.", variant: "destructive" })
     }
   }
 
@@ -316,29 +313,29 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="w-full max-w-sm shadow-lg">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Card className="relative w-full max-w-md p-8 space-y-4 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+          <ShineBorder borderWidth={2} shineColor="hsl(var(--primary))" />
           <CardHeader className="text-center">
-            <div className="mx-auto w-fit mb-4">
-              <Logo />
-              <h2 className="text-2xl font-serif mt-4">Admin Login</h2>
-            </div>
+            <Logo />
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+            <CardDescription>Enter your password to access the admin dashboard.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
+                  placeholder="••••••••"
                   required
                 />
               </div>
               <Button type="submit" className="w-full">
-                Log In
+                Login
               </Button>
             </form>
           </CardContent>
