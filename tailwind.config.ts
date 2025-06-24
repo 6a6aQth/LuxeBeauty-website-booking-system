@@ -76,11 +76,20 @@ const config = {
           "50%": { backgroundPosition: "100% 100%" },
           to: { backgroundPosition: "0% 0%" },
         },
+        pulse: {
+          "0%, 100%": {
+            boxShadow: "0 0 0 0 var(--pulse-color)",
+          },
+          "50%": {
+            boxShadow: "0 0 0 8px var(--pulse-color)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shine: "shine var(--duration) linear infinite",
+        pulse: "pulse var(--duration) ease-out infinite",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

@@ -6,6 +6,8 @@ import { Instagram } from "lucide-react"
 import { TiktokIcon } from "@/components/tiktok-icon"
 import { AnimatedSection } from "@/components/ui/animated-section"
 import NewsletterSignup from "@/components/newsletter-signup"
+import { PulsatingButton } from "@/components/ui/pulsating-button"
+import { SparklesText } from "@/components/ui/sparkles-text"
 
 export default function Home() {
   return (
@@ -24,11 +26,13 @@ export default function Home() {
             <p className="text-lg md:text-xl mb-8 max-w-xl mx-auto text-gray-700">
               Experience premium nail care and beauty services in the heart of Blantyre.
             </p>
-            <Link href="/booking">
-              <Button className="bg-black text-white hover:bg-gray-800 rounded-none px-8 py-6 text-base">
-                Book Appointment
-              </Button>
-            </Link>
+            <div className="flex justify-center">
+              <Link href="/booking">
+                <PulsatingButton className="bg-black text-white hover:bg-gray-800 rounded-none px-6 py-4 text-base">
+                  Book Appointment
+                </PulsatingButton>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -38,7 +42,9 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="order-2 md:order-1">
-              <h2 className="text-3xl font-serif mb-6">About Our Studio</h2>
+              <SparklesText className="text-3xl font-serif mb-6" sparklesCount={5} colors={{ first: '#E5E4E2', second: '#C0C0C0' }}>
+                About Our Studio
+              </SparklesText>
               <p className="text-gray-700 mb-6">
                 Lauryn Luxe Beauty Studio is a premium beauty destination where elegance meets expertise. Founded by
                 Lauryn Lambat, our studio offers a serene escape where clients can indulge in top-tier nail care
