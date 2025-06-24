@@ -54,7 +54,7 @@ export default async function ServicesPage() {
   };
 
   return (
-    <div className="bg-white">
+    <div>
       <PageHeader
         title="Our Services"
         description="Discover our range of premium nail care services, each delivered with meticulous attention to detail and using only the finest products."
@@ -114,8 +114,7 @@ export default async function ServicesPage() {
         </div>
       </section>
 
-      {/* Additional Info Section */}
-      <AnimatedSection className="py-20" delay={0.2}>
+      <AnimatedSection className="py-20 bg-white" delay={0.2}>
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-serif mb-8 text-center">Additional Information</h2>
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
@@ -145,7 +144,6 @@ export default async function ServicesPage() {
         </div>
       </AnimatedSection>
 
-      {/* CTA Section */}
       <section className="py-20 bg-black text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-serif mb-6">Ready to Book Your Service?</h2>
