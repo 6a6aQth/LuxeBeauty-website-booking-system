@@ -38,6 +38,7 @@ interface Service {
   name: string;
   price: number;
   category: string;
+  discountApplied?: boolean;
 }
 
 interface Booking {
@@ -73,6 +74,9 @@ export default function AdminPage() {
   const [isManageDateOpen, setIsManageDateOpen] = useState(false)
   const [managedSlots, setManagedSlots] = useState<string[]>([])
   const [showAll, setShowAll] = useState(false)
+  const [priceListUrl, setPriceListUrl] = useState('')
+  const [priceListFile, setPriceListFile] = useState<File | null>(null)
+  const [isSavingPriceList, setIsSavingPriceList] = useState(false)
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
@@ -114,6 +118,12 @@ export default function AdminPage() {
             toast({ title: "Error", description: "Failed to fetch services.", variant: "destructive" });
         }
 
+        const priceListRes = await fetch('/api/price-list');
+        if (priceListRes.ok) {
+            const priceListData = await priceListRes.json();
+            setPriceListUrl(priceListData.priceListUrl);
+        }
+
       } catch (error) {
         console.error("Failed to fetch admin data", error);
         toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
@@ -149,6 +159,38 @@ export default function AdminPage() {
         toast({ title: "Error", description: "Could not save prices.", variant: "destructive" });
     } finally {
         setIsSavingPrices(false);
+    }
+  };
+
+  const handleSavePriceList = async () => {
+    if (!priceListFile) {
+      toast({ title: "No file selected", description: "Please select an image to upload.", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingPriceList(true);
+    try {
+      const response = await fetch(
+        `/api/price-list/upload?filename=${priceListFile.name}`,
+        {
+          method: 'POST',
+          body: priceListFile,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload price list');
+      }
+
+      const newBlob = await response.json();
+      setPriceListUrl(newBlob.url);
+      setPriceListFile(null); // Clear the file input
+
+      toast({ title: "Success", description: "Price list has been updated." });
+    } catch (error) {
+      toast({ title: "Error", description: "Could not save price list.", variant: "destructive" });
+    } finally {
+      setIsSavingPriceList(false);
     }
   };
 
@@ -436,6 +478,32 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <NewsletterForm />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Update Price List</CardTitle>
+                <CardDescription>Change the image for the prices page.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="price-list-file">Price List Image</Label>
+                  <Input
+                    id="price-list-file"
+                    type="file"
+                    onChange={(e) => setPriceListFile(e.target.files?.[0] || null)}
+                    accept="image/*"
+                  />
+                  {priceListUrl && !priceListFile && (
+                    <div className="mt-2 text-sm text-gray-500">
+                      Current image: <a href={priceListUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline">View</a>
+                    </div>
+                  )}
+                </div>
+                <Button onClick={handleSavePriceList} disabled={isSavingPriceList} className="w-full mt-4">
+                  {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
+                </Button>
               </CardContent>
             </Card>
           </div>
