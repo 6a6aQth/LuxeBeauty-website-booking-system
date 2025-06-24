@@ -18,9 +18,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, email, services, timeSlot, date, notes } = body;
+    const { name, phone, email, services, date, timeSlot, discountApplied, inspirationPhotos, notes } = body;
 
-    if (!name || !phone || !services || !timeSlot || !date) {
+    if (!name || !phone || !services || !date || !timeSlot) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
@@ -36,11 +36,12 @@ export async function POST(req: NextRequest) {
         phone,
         email,
         services,
-        timeSlot,
         date,
-        notes,
+        timeSlot,
         ticketId,
-        discountApplied: isDiscountBooking,
+        discountApplied: discountApplied || isDiscountBooking,
+        inspirationPhotos: inspirationPhotos || [],
+        notes: notes || null,
       },
     });
 

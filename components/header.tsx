@@ -31,7 +31,7 @@ const Header = () => {
   const isAdminPage = pathname.startsWith('/admin')
 
   return (
-    <header className="bg-white sticky top-0 z-50 shadow-md">
+    <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 min-h-20 py-2 flex justify-between items-center">
         <Logo />
 

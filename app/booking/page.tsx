@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import BookingStatus from "@/components/booking-status"
 import { PageHeader } from "@/components/page-header"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
+import { FileUpload } from "@/components/ui/file-upload"
 
 const loadingStates = [
   { text: "Processing Payment" },
@@ -63,6 +64,7 @@ export default function Booking() {
     timeSlot: "",
     date: "",
     notes: "",
+    inspirationPhotos: [] as string[],
   })
   const [date, setDate] = useState<Date | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -225,6 +227,43 @@ export default function Booking() {
     }
   }
 
+  const handleFileChange = async (files: File[]) => {
+    if (files.length === 0) return;
+    const file = files[0];
+    
+    toast({ title: "Uploading...", description: "Your inspiration photo is being uploaded." });
+
+    try {
+      const response = await fetch(
+        `/api/bookings/upload?filename=${file.name}`,
+        {
+          method: 'POST',
+          body: file,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const newBlob = await response.json();
+      setFormData((prev) => ({
+        ...prev,
+        inspirationPhotos: [...prev.inspirationPhotos, newBlob.url],
+      }));
+      
+      toast({ title: "Success!", description: "Photo uploaded successfully." });
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Upload Failed",
+        description: "Could not upload your photo. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const serviceOptions = [
     { value: "gel-natural", label: "Gel on Natural Nails" },
     { value: "gel-tips", label: "Gel on Tips" },
@@ -347,7 +386,15 @@ export default function Booking() {
                         </Select>
                       </div>
 
+                      <div className="pt-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          Inspiration Photo (Optional)
+                        </Label>
+                        <FileUpload onChange={handleFileChange} />
+                      </div>
+
                       <Textarea name="notes" placeholder="Additional Notes (Optional)" value={formData.notes} onChange={handleChange} className="bg-white" />
+
                       <Button type="submit" className="w-full bg-black text-white hover:bg-gray-900 py-3 text-base" disabled={isSubmitting || !formData.date || formData.services.length === 0 || !formData.timeSlot}>
                         {isSubmitting ? "Processing..." : "Proceed to Payment"}
                       </Button>

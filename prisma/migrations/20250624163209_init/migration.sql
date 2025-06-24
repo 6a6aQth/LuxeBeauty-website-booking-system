@@ -10,6 +10,7 @@ CREATE TABLE "Booking" (
     "notes" TEXT,
     "ticketId" TEXT NOT NULL,
     "discountApplied" BOOLEAN NOT NULL DEFAULT false,
+    "inspirationPhotos" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -39,14 +40,20 @@ CREATE TABLE "Service" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "price" INTEGER NOT NULL,
     "duration" INTEGER NOT NULL,
     "category" TEXT NOT NULL,
-    "image" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Service_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SiteSettings" (
+    "id" TEXT NOT NULL,
+    "priceListUrl" TEXT NOT NULL,
+
+    CONSTRAINT "SiteSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex

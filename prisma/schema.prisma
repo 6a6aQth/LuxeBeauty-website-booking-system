@@ -21,6 +21,7 @@ model Booking {
   notes     String?
   ticketId  String   @unique
   discountApplied  Boolean  @default(false)
+  inspirationPhotos String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

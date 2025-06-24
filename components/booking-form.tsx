@@ -29,6 +29,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUpload } from "@/components/ui/file-upload";
 
 export function BookingForm({
   formData,
@@ -54,6 +55,29 @@ export function BookingForm({
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
+
+  const handleFileChange = async (files: File[]) => {
+    if (files.length > 0) {
+      const file = files[0];
+      try {
+        const response = await fetch(
+          `/api/bookings/upload?filename=${file.name}`,
+          {
+            method: 'POST',
+            body: file,
+          }
+        );
+        const newBlob = await response.json();
+        setFormData((prev: any) => ({
+          ...prev,
+          inspirationPhotos: [...(prev.inspirationPhotos || []), newBlob.url],
+        }));
+      } catch (error) {
+        console.error('Failed to upload file', error);
+      }
+    }
+  };
+
   return (
     <Card className="max-w-4xl mx-auto border-none shadow-2xl overflow-hidden">
       <div className="grid md:grid-cols-2">
@@ -225,14 +249,11 @@ export function BookingForm({
                         availableSlotsForSelectedDate.map((slot: any) => {
                           const isBooked =
                             bookedSlots[formData.date]?.includes(slot);
-                          const isUnavailable =
-                            unavailableSlots[formData.date]?.includes(slot);
-                          const isDisabled = isBooked || isUnavailable;
                           return (
                             <SelectItem
                               key={slot}
                               value={slot}
-                              disabled={isDisabled}
+                              disabled={isBooked}
                             >
                               {formatTime(slot)}
                             </SelectItem>
@@ -247,6 +268,13 @@ export function BookingForm({
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="pt-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Inspiration Photo (Optional)
+                  </Label>
+                  <FileUpload onChange={handleFileChange} />
                 </div>
 
                 <Textarea
