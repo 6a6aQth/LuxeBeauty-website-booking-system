@@ -125,6 +125,15 @@ export default function Booking() {
     return getSlotsForDate(date);
   }, [date]);
 
+  const allUnavailableSlotsForDate = useMemo(() => {
+    if (!date) return [];
+    const dateStr = format(date, "yyyy-MM-dd");
+    const bSlots = bookedSlots[dateStr] || [];
+    const uSlots = unavailableSlots[dateStr] || [];
+    const combined = [...new Set([...bSlots, ...uSlots])]; // Use Set to remove duplicates
+    return combined;
+  }, [date, bookedSlots, unavailableSlots]);
+
   const fullyBookedDates = useMemo(() => {
     const allDates = new Set([...Object.keys(bookedSlots), ...Object.keys(unavailableSlots)]);
     const fullyBlockedDates: Date[] = [];
@@ -279,7 +288,7 @@ export default function Booking() {
           handleSubmit={handleSubmit}
           handleSelectChange={handleSelectChange}
           availableSlotsForSelectedDate={availableSlotsForSelectedDate}
-          bookedSlots={bookedSlots[formData.date] || []}
+          unavailableSlots={allUnavailableSlotsForDate}
           formatTime={formatTime}
           isPaying={isPaying}
           agreedToTerms={agreedToTerms}
@@ -287,7 +296,7 @@ export default function Booking() {
           handlePayment={handlePayment}
           setStep={setStep}
         />
-              </div>
+      </div>
 
       <Dialog open={isSubmitting}>
         <DialogContent>

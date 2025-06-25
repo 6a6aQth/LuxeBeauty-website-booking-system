@@ -18,7 +18,7 @@ export interface BookingFormProps {
   handleSubmit: (e: React.FormEvent) => void;
   handleSelectChange: (name: string, value: string) => void;
   availableSlotsForSelectedDate: string[];
-  bookedSlots: string[];
+  unavailableSlots: string[];
   formatTime: (time: string) => string;
   isPaying: boolean;
   agreedToTerms: boolean;

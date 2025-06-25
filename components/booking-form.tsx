@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { BookingFormProps, Service } from "@/types/types";
-import { X } from 'lucide-react';
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function BookingForm({
@@ -46,7 +46,7 @@ export function BookingForm({
   handleSubmit,
   handleSelectChange,
   availableSlotsForSelectedDate,
-  bookedSlots,
+  unavailableSlots,
   formatTime,
   isPaying,
   agreedToTerms,
@@ -60,13 +60,13 @@ export function BookingForm({
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch('/api/services');
+        const response = await fetch("/api/services");
         if (response.ok) {
           const data = await response.json();
           setServices(data);
         }
       } catch (error) {
-        console.error('Failed to fetch services', error);
+        console.error("Failed to fetch services", error);
       }
     };
 
@@ -75,13 +75,13 @@ export function BookingForm({
 
   const categories = React.useMemo(() => {
     if (services.length === 0) return [];
-    const cats = services.map(s => s.category);
+    const cats = services.map((s) => s.category);
     return Array.from(new Set(cats));
   }, [services]);
 
   const filteredServices = React.useMemo(() => {
     if (!selectedCategory) return [];
-    return services.filter(s => s.category === selectedCategory);
+    return services.filter((s) => s.category === selectedCategory);
   }, [services, selectedCategory]);
 
   const handleChange = (e: any) => {
@@ -96,7 +96,7 @@ export function BookingForm({
         const response = await fetch(
           `/api/bookings/upload?filename=${file.name}`,
           {
-            method: 'POST',
+            method: "POST",
             body: file,
           }
         );
@@ -106,7 +106,7 @@ export function BookingForm({
           inspirationPhotos: [...(prev.inspirationPhotos || []), newBlob.url],
         }));
       } catch (error) {
-        console.error('Failed to upload file', error);
+        console.error("Failed to upload file", error);
       }
     }
   };
@@ -202,18 +202,23 @@ export function BookingForm({
                   <Label className="text-base font-medium text-gray-900">
                     Select Service Category
                   </Label>
-                  <Select onValueChange={setSelectedCategory} value={selectedCategory || ''}>
+                  <Select
+                    onValueChange={setSelectedCategory}
+                    value={selectedCategory || ""}
+                  >
                     <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border-gray-200">
-                      {categories.map(category => (
-                        <SelectItem 
-                          key={category} 
+                      {categories.map((category) => (
+                        <SelectItem
+                          key={category}
                           value={category}
                           className="focus:bg-brand-pink/10"
                         >
-                          {category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {category
+                            .replace(/-/g, " ")
+                            .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -253,21 +258,18 @@ export function BookingForm({
                           />
                           <Label
                             htmlFor={`service-${service.id}`}
-                            className={`text-sm font-normal cursor-pointer ${
-                              !service.isAvailable ? 'text-gray-400' : 'text-gray-700'
-                            }`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                           >
                             {service.name}
-                            {!service.isAvailable && ' (Unavailable)'}
                           </Label>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                
+
                 {formData.services.length > 0 && (
-                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <div className="space-y-4">
                     <Label className="text-base font-medium text-gray-900">
                       Selected Services
                     </Label>
@@ -304,147 +306,182 @@ export function BookingForm({
                   </div>
                 )}
 
-                <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-gray-50 border-gray-300 text-gray-900 rounded-md hover:text-gray-900 focus:ring-brand-pink",
-                          !date && "text-gray-500"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white border-gray-200 text-gray-900">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={handleDateSelect}
-                        initialFocus
-                        disabled={[
-                          { before: new Date(Date.now() + 86400000) },
-                          { dayOfWeek: [0] },
-                          ...fullyBookedDates,
-                        ]}
-                      />
-                    </PopoverContent>
-                  </Popover>
-
-                  <Select
-                    value={formData.timeSlot}
-                    onValueChange={(value) =>
-                      handleSelectChange("timeSlot", value)
-                    }
-                    disabled={!date}
-                  >
-                    <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
-                      <SelectValue placeholder="Select a time" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white text-gray-900 border-gray-200">
-                      {date && availableSlotsForSelectedDate.length > 0 ? (
-                        availableSlotsForSelectedDate.map((slot: any) => {
-                          const isBooked =
-                            bookedSlots[formData.date]?.includes(slot);
-                          return (
-                            <SelectItem
-                              key={slot}
-                              value={slot}
-                              disabled={isBooked}
-                              className="focus:bg-brand-pink/10"
-                            >
-                              {formatTime(slot)}
-                            </SelectItem>
-                          );
-                        })
-                      ) : (
-                        <div className="p-2 text-sm text-gray-500">
-                          {date
-                            ? "No slots available."
-                            : "Select a date first."}
-                        </div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="pt-4 space-y-4 border-t border-gray-200">
-                  <Label className="text-base font-medium text-gray-900">
-                    Inspiration Photo (Optional)
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <Label className="text-base font-medium text-gray-900 col-span-full">
+                    Select Date & Time
                   </Label>
-                  <FileUpload onChange={handleFileChange} />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-gray-50 border-gray-300",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? (
+                            format(date, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={handleDateSelect}
+                          initialFocus
+                          disabled={(d) => fullyBookedDates.some(
+                            (bookedDate) =>
+                              new Date(d).toDateString() ===
+                              new Date(bookedDate).toDateString()
+                          )}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    <Select
+                      value={formData.timeSlot}
+                      onValueChange={(value) =>
+                        handleSelectChange("timeSlot", value)
+                      }
+                      disabled={!date}
+                    >
+                      <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
+                        <SelectValue placeholder="Select a time" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white text-gray-900 border-gray-200">
+                        {date && availableSlotsForSelectedDate.length > 0 ? (
+                          availableSlotsForSelectedDate.map((slot: any) => {
+                            const isUnavailable =
+                              unavailableSlots.includes(slot);
+                            return (
+                              <SelectItem
+                                key={slot}
+                                value={slot}
+                                disabled={isUnavailable}
+                                className="focus:bg-brand-pink/10"
+                              >
+                                {formatTime(slot)}
+                              </SelectItem>
+                            );
+                          })
+                        ) : (
+                          <div className="p-2 text-sm text-gray-500">
+                            {date
+                              ? "No slots available."
+                              : "Select a date first."}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <Textarea
+                  id="notes"
                   name="notes"
                   placeholder="Additional Notes (Optional)"
                   value={formData.notes}
                   onChange={handleChange}
                   className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
                 />
+
+                <div className="space-y-4">
+                  <Label className="text-base font-medium text-gray-900">
+                    Inspiration Photo (Optional)
+                  </Label>
+                  <FileUpload
+                    onChange={handleFileChange}
+                    uploadedFiles={formData.inspirationPhotos}
+                  />
+                </div>
+
+                <div className="items-top flex space-x-2 pt-4 border-t border-gray-200">
+                  <Checkbox
+                    id="terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) =>
+                      setAgreedToTerms(checked as boolean)
+                    }
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="terms"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      I agree to the studio policies
+                    </label>
+                    <StudioPolicies />
+                  </div>
+                </div>
+
                 <Button
                   type="submit"
-                  className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 py-3 text-base rounded-md"
+                  className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 transition-colors"
                   disabled={
                     isSubmitting ||
+                    !agreedToTerms ||
                     !formData.date ||
                     formData.services.length === 0 ||
                     !formData.timeSlot
                   }
                 >
-                  {isSubmitting ? "Processing..." : "Proceed to Payment"}
+                  {isSubmitting ? "Submitting..." : "Proceed to Pay"}
                 </Button>
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="space-y-4 text-gray-600 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h3 className="font-semibold text-lg text-center text-gray-900 border-b border-gray-200 pb-2 mb-4">
-                    Booking Summary
-                  </h3>
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold">Review Your Booking</h3>
+                  <p className="text-sm text-gray-500">
+                    Please confirm the details below before payment.
+                  </p>
+                </div>
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="flex justify-between">
-                    <span>Name:</span> <strong className="text-gray-900">{formData.name}</strong>
+                    <span>Full Name:</span>{" "}
+                    <strong className="text-gray-900">{formData.name}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span>Date:</span> <strong className="text-gray-900">{formData.date}</strong>
+                    <span>Phone:</span>{" "}
+                    <strong className="text-gray-900">{formData.phone}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Date:</span>{" "}
+                    <strong className="text-gray-900">
+                      {formData.date ? format(new Date(formData.date), "PPP") : ""}
+                    </strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Time Slot:</span>{" "}
-                    <strong className="text-gray-900">{formatTime(formData.timeSlot)}</strong>
+                    <strong className="text-gray-900">
+                      {formatTime(formData.timeSlot)}
+                    </strong>
                   </div>
                   <div>
-                    <div className="flex justify-between">
-                      <span>Services:</span>
-                      <div className="text-right font-semibold text-gray-900">
-                        {formData.services.map((s: any) => (
-                          <div key={s}>
-                            {services.find((service) => service.id === s)?.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="font-medium text-gray-900">Notes:</p>
+                    <p className="text-sm text-gray-600">
+                      {formData.notes || "N/A"}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-3 p-2">
-                  <Checkbox
-                    id="terms"
-                    onCheckedChange={(checked) =>
-                      setAgreedToTerms(Boolean(checked))
-                    }
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-600"
-                  >
-                    I have read and agree to the <StudioPolicies />.
-                  </label>
-                </div>
-                <Button onClick={handlePayment} disabled={isPaying || !agreedToTerms} className="w-full bg-brand-pink text-white py-3 text-base rounded-md">
-                  {isPaying ? "Processing..." : "Pay K10,000 Booking Fee"}
-                </Button>
-                <Button variant="link" onClick={() => setStep('form')} className="w-full text-brand-pink hover:text-brand-pink/90">
+                <Button
+                  onClick={() => setStep("form")}
+                  variant="outline"
+                  className="w-full"
+                >
                   Go Back & Edit
+                </Button>
+                <Button
+                  onClick={handlePayment}
+                  disabled={isPaying}
+                  className="w-full bg-green-500 text-white hover:bg-green-600"
+                >
+                  {isPaying ? "Processing..." : "Pay K10,000 Now"}
                 </Button>
               </div>
             )}

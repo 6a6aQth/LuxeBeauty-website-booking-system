@@ -1,24 +1,34 @@
 import { cn } from "@/lib/utils";
-import React, { useRef, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 
 export const FileUpload = ({
   onChange,
+  uploadedFiles = [],
 }: {
   onChange?: (files: File[]) => void;
+  uploadedFiles?: string[];
 }) => {
-  const [files, setFiles] = useState<File[]>([]);
-
   const onDrop = (acceptedFiles: File[]) => {
-    setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
     onChange && onChange(acceptedFiles);
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
+  });
+
+  // Extract file names from URLs
+  const fileNames = uploadedFiles.map(url => {
+    try {
+      const decodedUrl = decodeURIComponent(url);
+      const parts = decodedUrl.split("?")[0].split("/");
+      return parts[parts.length - 1];
+    } catch (e) {
+      return "Uploaded File";
+    }
   });
 
   return (
@@ -32,7 +42,7 @@ export const FileUpload = ({
     >
       <input {...getInputProps()} />
       <div className="flex flex-col items-center justify-center space-y-2">
-        {!files.length && !isDragActive && (
+        {fileNames.length === 0 && !isDragActive && (
           <motion.div
             initial={{ scale: 1 }}
             animate={{ scale: [1, 1.1, 1] }}
@@ -44,21 +54,23 @@ export const FileUpload = ({
         <p className="text-gray-500">
           {isDragActive
             ? "Drop the file here..."
+            : fileNames.length > 0
+            ? "File selected. Click to change."
             : "Drag & drop an image, or click to select"}
         </p>
       </div>
-      {files.length > 0 && (
+      {fileNames.length > 0 && (
         <div className="mt-4 text-left">
           <p className="font-medium text-gray-900">Selected file:</p>
           <ul className="text-sm text-gray-500">
-            {files.map((file, i) => (
+            {fileNames.map((name, i) => (
               <motion.li
                 key={i}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {file.name}
+                {name}
               </motion.li>
             ))}
           </ul>
