@@ -475,7 +475,8 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <WavyBackground
-        className="flex items-center justify-center p-4 min-h-screen"
+        containerClassName="flex items-center justify-center"
+        className="p-4"
         colors={["#2E2E2E", "#4A4A4A", "#1C1C1C"]}
         waveOpacity={0.3}
         backgroundFill="black"
