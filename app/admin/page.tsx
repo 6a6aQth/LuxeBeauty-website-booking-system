@@ -474,26 +474,37 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="w-full max-w-sm p-8 space-y-6 bg-white rounded-2xl shadow-soft">
-          <CardHeader className="p-0 text-center">
-            <h1 className="font-serif text-3xl font-bold">Admin Access</h1>
-            <CardDescription>Enter the password to manage the studio.</CardDescription>
+      <WavyBackground
+        className="flex items-center justify-center p-4 min-h-screen"
+        colors={["#2E2E2E", "#4A4A4A", "#1C1C1C"]}
+        waveOpacity={0.3}
+        backgroundFill="black"
+      >
+        <Card className="relative max-w-sm p-6 space-y-4 overflow-hidden bg-white dark:bg-gray-900 rounded-2xl shadow-xl">
+          <ShineBorder borderWidth={2} shineColor="hsl(var(--primary))" />
+          <CardHeader className="text-center p-0">
+            <div className="flex justify-center mb-4">
+              <Logo />
+            </div>
+            <CardTitle className="text-2xl font-bold font-serif">Admin Login</CardTitle>
+            <CardDescription>Enter password to manage the studio.</CardDescription>
           </CardHeader>
-            <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  type="password"
-              placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-              className="rounded-lg text-center"
-                />
-            <Button type="submit" className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
+          <CardContent className="p-0">
+            <form onSubmit={handleLogin} className="space-y-4 pt-4">
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-lg text-center bg-gray-100 dark:bg-gray-800"
+              />
+              <Button type="submit" className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
                 Login
               </Button>
             </form>
+          </CardContent>
         </Card>
-      </div>
+      </WavyBackground>
     );
   }
 
