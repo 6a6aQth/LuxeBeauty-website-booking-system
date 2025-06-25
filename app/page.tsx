@@ -127,7 +127,7 @@ function HomeContent() {
               },
               {
                 title: "Pedicure",
-                image: "/IMG_7429.png",
+                image: "/pedicure.jpg",
                 description: "Pamper your feet with our luxurious pedicure experiences.",
               },
               {
