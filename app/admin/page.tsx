@@ -680,7 +680,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-auto max-h-[1200px] pr-4 -mr-4">
+                <ScrollArea className="h-[70vh] pr-4 -mr-4">
                   <div className="space-y-6">
                     {filteredBookings.length > 0 ? (
                       filteredBookings.map((booking) => (

@@ -220,7 +220,7 @@ export default function Home() {
       </AnimatedSection>
 
       {/* Newsletter Section */}
-      <AnimatedSection className="py-20 bg-nude-light">
+      <AnimatedSection id="newsletter-signup" className="py-20 bg-nude-light">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl font-serif mb-4">Join Our Newsletter</h2>
