@@ -112,7 +112,7 @@ export function BookingForm({
   };
 
   return (
-    <Card className="max-w-4xl mx-auto border-none shadow-2xl overflow-hidden">
+    <Card className="max-w-4xl mx-auto border-none overflow-hidden shadow-soft">
       <div className="grid md:grid-cols-2">
         <div className="relative bg-gray-100 p-8">
           <div
@@ -154,12 +154,12 @@ export function BookingForm({
           </div>
         </div>
 
-        <div className="p-8 bg-gray-50">
+        <div className="p-8 bg-white">
           <CardHeader className="p-0 mb-6 text-center">
-            <CardTitle className="text-3xl font-serif">
+            <CardTitle className="text-2xl font-bold text-gray-900">
               {step === "form" ? "Book Your Slot" : "Confirm & Pay"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm text-gray-500">
               {step === "form"
                 ? "A K10,000 non-refundable deposit is required."
                 : "Review your details and pay the booking fee."}
@@ -167,7 +167,7 @@ export function BookingForm({
           </CardHeader>
           <CardContent className="p-0">
             {step === "form" ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Input
                     id="name"
@@ -176,7 +176,7 @@ export function BookingForm({
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="bg-white"
+                    className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
                   />
                   <Input
                     id="phone"
@@ -185,7 +185,7 @@ export function BookingForm({
                     required
                     value={formData.phone}
                     onChange={handleChange}
-                    className="bg-white"
+                    className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
                   />
                 </div>
                 <Input
@@ -195,20 +195,24 @@ export function BookingForm({
                   placeholder="Email Address (Optional)"
                   value={formData.email}
                   onChange={handleChange}
-                  className="bg-white"
+                  className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
                 />
 
-                <div className="space-y-3 pt-2">
-                  <Label className="text-sm font-medium text-gray-700">
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <Label className="text-base font-medium text-gray-900">
                     Select Service Category
                   </Label>
                   <Select onValueChange={setSelectedCategory} value={selectedCategory || ''}>
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-gray-900 border-gray-200">
                       {categories.map(category => (
-                        <SelectItem key={category} value={category}>
+                        <SelectItem 
+                          key={category} 
+                          value={category}
+                          className="focus:bg-brand-pink/10"
+                        >
                           {category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </SelectItem>
                       ))}
@@ -217,15 +221,15 @@ export function BookingForm({
                 </div>
 
                 {selectedCategory && (
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-sm font-medium text-gray-700">
+                  <div className="space-y-4">
+                    <Label className="text-base font-medium text-gray-900">
                       Select Services
                     </Label>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                       {filteredServices.map((service) => (
                         <div
                           key={service.id}
-                          className="flex items-center space-x-2"
+                          className="flex items-center space-x-3"
                         >
                           <Checkbox
                             id={`service-${service.id}`}
@@ -250,7 +254,7 @@ export function BookingForm({
                           <Label
                             htmlFor={`service-${service.id}`}
                             className={`text-sm font-normal cursor-pointer ${
-                              !service.isAvailable ? 'text-gray-400' : ''
+                              !service.isAvailable ? 'text-gray-400' : 'text-gray-700'
                             }`}
                           >
                             {service.name}
@@ -261,21 +265,21 @@ export function BookingForm({
                     </div>
                   </div>
                 )}
-
+                
                 {formData.services.length > 0 && (
-                  <div className="space-y-3 pt-4">
-                    <Label className="text-sm font-medium text-gray-700">
+                  <div className="space-y-4 pt-4 border-t border-gray-200">
+                    <Label className="text-base font-medium text-gray-900">
                       Selected Services
                     </Label>
-                    <div className="flex flex-wrap gap-2 p-3 bg-gray-100 rounded-lg">
+                    <div className="flex flex-wrap gap-2">
                       {formData.services.map((serviceId: string) => {
                         const service = services.find(s => s.id === serviceId);
                         if (!service) return null;
                         return (
                           <Badge
                             key={service.id}
-                            variant="secondary"
-                            className="flex items-center gap-2"
+                            variant="default"
+                            className="bg-brand-pink/10 text-brand-pink border-brand-pink/20 flex items-center gap-2 rounded-full px-3 py-1 text-sm font-normal"
                           >
                             <span>{service.name}</span>
                             <button
@@ -289,7 +293,7 @@ export function BookingForm({
                                   services: newServices,
                                 }));
                               }}
-                              className="rounded-full hover:bg-gray-300 p-0.5"
+                              className="rounded-full hover:bg-black/10 p-0.5"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -300,21 +304,21 @@ export function BookingForm({
                   </div>
                 )}
 
-                <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full justify-start text-left font-normal bg-white",
-                          !date && "text-muted-foreground"
+                          "w-full justify-start text-left font-normal bg-gray-50 border-gray-300 text-gray-900 rounded-md hover:text-gray-900 focus:ring-brand-pink",
+                          !date && "text-gray-500"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {date ? format(date, "PPP") : <span>Pick a date</span>}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 bg-white border-gray-200 text-gray-900">
                       <Calendar
                         mode="single"
                         selected={date}
@@ -336,10 +340,10 @@ export function BookingForm({
                     }
                     disabled={!date}
                   >
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
                       <SelectValue placeholder="Select a time" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white text-gray-900 border-gray-200">
                       {date && availableSlotsForSelectedDate.length > 0 ? (
                         availableSlotsForSelectedDate.map((slot: any) => {
                           const isBooked =
@@ -349,6 +353,7 @@ export function BookingForm({
                               key={slot}
                               value={slot}
                               disabled={isBooked}
+                              className="focus:bg-brand-pink/10"
                             >
                               {formatTime(slot)}
                             </SelectItem>
@@ -365,8 +370,8 @@ export function BookingForm({
                   </Select>
                 </div>
 
-                <div className="pt-2">
-                  <Label className="text-sm font-medium text-gray-700">
+                <div className="pt-4 space-y-4 border-t border-gray-200">
+                  <Label className="text-base font-medium text-gray-900">
                     Inspiration Photo (Optional)
                   </Label>
                   <FileUpload onChange={handleFileChange} />
@@ -377,11 +382,11 @@ export function BookingForm({
                   placeholder="Additional Notes (Optional)"
                   value={formData.notes}
                   onChange={handleChange}
-                  className="bg-white"
+                  className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
                 />
                 <Button
                   type="submit"
-                  className="w-full bg-black text-white hover:bg-gray-900 py-3 text-base"
+                  className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 py-3 text-base rounded-md"
                   disabled={
                     isSubmitting ||
                     !formData.date ||
@@ -394,24 +399,24 @@ export function BookingForm({
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="space-y-4 text-gray-800 p-4 border rounded-lg bg-white">
-                  <h3 className="font-semibold text-lg text-center border-b pb-2 mb-4">
+                <div className="space-y-4 text-gray-600 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h3 className="font-semibold text-lg text-center text-gray-900 border-b border-gray-200 pb-2 mb-4">
                     Booking Summary
                   </h3>
                   <div className="flex justify-between">
-                    <span>Name:</span> <strong>{formData.name}</strong>
+                    <span>Name:</span> <strong className="text-gray-900">{formData.name}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span>Date:</span> <strong>{formData.date}</strong>
+                    <span>Date:</span> <strong className="text-gray-900">{formData.date}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span>Time Slot:</span>{" "}
-                    <strong>{formatTime(formData.timeSlot)}</strong>
+                    <strong className="text-gray-900">{formatTime(formData.timeSlot)}</strong>
                   </div>
                   <div>
                     <div className="flex justify-between">
                       <span>Services:</span>
-                      <div className="text-right font-semibold">
+                      <div className="text-right font-semibold text-gray-900">
                         {formData.services.map((s: any) => (
                           <div key={s}>
                             {services.find((service) => service.id === s)?.name}
@@ -421,7 +426,7 @@ export function BookingForm({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 p-2">
+                <div className="flex items-center space-x-3 p-2">
                   <Checkbox
                     id="terms"
                     onCheckedChange={(checked) =>
@@ -430,23 +435,15 @@ export function BookingForm({
                   />
                   <label
                     htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-600"
                   >
                     I have read and agree to the <StudioPolicies />.
                   </label>
                 </div>
-                <Button
-                  onClick={handlePayment}
-                  disabled={isPaying || !agreedToTerms}
-                  className="w-full bg-black text-white py-3 text-base"
-                >
+                <Button onClick={handlePayment} disabled={isPaying || !agreedToTerms} className="w-full bg-brand-pink text-white py-3 text-base rounded-md">
                   {isPaying ? "Processing..." : "Pay K10,000 Booking Fee"}
                 </Button>
-                <Button
-                  variant="link"
-                  onClick={() => setStep("form")}
-                  className="w-full text-gray-600 hover:text-black"
-                >
+                <Button variant="link" onClick={() => setStep('form')} className="w-full text-brand-pink hover:text-brand-pink/90">
                   Go Back & Edit
                 </Button>
               </div>

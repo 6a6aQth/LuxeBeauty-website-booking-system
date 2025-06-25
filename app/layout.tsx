@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Montserrat } from "next/font/google"
+import { Playfair_Display, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
@@ -12,9 +12,9 @@ const playfair = Playfair_Display({
   display: "swap",
 })
 
-const montserrat = Montserrat({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-montserrat",
+  variable: "--font-sans",
   display: "swap",
 })
 
@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning style={{ overflowX: "hidden" }}>
       <body
-        className={`${playfair.variable} ${montserrat.variable} font-sans bg-white`}
+        className={`${playfair.variable} ${inter.variable} font-sans bg-white`}
         style={{ overflowX: "hidden" }}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>

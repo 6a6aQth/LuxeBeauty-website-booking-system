@@ -287,7 +287,7 @@ export default function Booking() {
           handlePayment={handlePayment}
           setStep={setStep}
         />
-      </div>
+              </div>
 
       <Dialog open={isSubmitting}>
         <DialogContent>

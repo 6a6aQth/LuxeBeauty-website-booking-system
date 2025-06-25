@@ -52,6 +52,9 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        'brand-pink': {
+          DEFAULT: "hsl(var(--brand-pink))",
+        },
         'brand-blush': {
           DEFAULT: "hsl(var(--brand-blush))",
           foreground: "hsl(var(--brand-blush-foreground))",
@@ -92,7 +95,7 @@ const config = {
         pulse: "pulse var(--duration) ease-out infinite",
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
+        sans: ["var(--font-sans)", "Inter", "sans-serif"],
         serif: ["var(--font-serif)"],
         "great-vibes": ["Great Vibes", "cursive"],
       },
