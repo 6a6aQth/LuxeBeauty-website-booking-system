@@ -6,10 +6,13 @@ import type { Service } from "@prisma/client"
 import { PageHeader } from "@/components/page-header"
 import { ServicesList } from "@/components/services-list"
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 async function getGroupedServices() {
   const services = await prisma.service.findMany({
+    where: {
+      isAvailable: true,
+    },
     orderBy: {
       createdAt: 'asc',
     },

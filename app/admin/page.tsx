@@ -267,14 +267,14 @@ export default function AdminPage() {
     const today = new Date();
     const next7Days = addDays(today, 7);
     today.setHours(0, 0, 0, 0);
-
+    
     const bookingsInNext7Days = bookings.filter(b => {
-        try {
+      try {
             const bookingDate = parseISO(b.date);
             return isValid(bookingDate) && isWithinInterval(bookingDate, { start: today, end: next7Days });
-        } catch {
-            return false;
-        }
+      } catch {
+        return false;
+      }
     });
 
     const totalSlotsInNext7Days = allTimeSlots.length * 7;
@@ -480,18 +480,18 @@ export default function AdminPage() {
             <h1 className="font-serif text-3xl font-bold">Admin Access</h1>
             <CardDescription>Enter the password to manage the studio.</CardDescription>
           </CardHeader>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              type="password"
+            <form onSubmit={handleLogin} className="space-y-4">
+                <Input
+                  type="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
               className="rounded-lg text-center"
-            />
+                />
             <Button type="submit" className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
-              Login
-            </Button>
-          </form>
+                Login
+              </Button>
+            </form>
         </Card>
       </div>
     );
@@ -507,8 +507,8 @@ export default function AdminPage() {
         </Button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
           <Card className="rounded-2xl shadow-soft overflow-hidden">
             <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><Briefcase/> Upcoming Bookings</CardTitle>
@@ -528,12 +528,12 @@ export default function AdminPage() {
                   {filteredBookings.length > 0 ? filteredBookings.map(booking => (
                     <div key={booking.id} className="p-4 bg-gray-100 rounded-xl space-y-3">
                       <div className="flex justify-between items-start">
-                        <div>
+                <div>
                           <p className="font-bold text-lg">{booking.name}</p>
                           {booking.discountApplied && (
                             <Badge variant="secondary" className="mt-1 bg-pink-100 text-pink-700 border-pink-200">30% Discount</Badge>
                           )}
-                        </div>
+                </div>
                         <div className="text-right flex-shrink-0">
                           <p className="font-semibold">{format(parseISO(booking.date), 'EEE, MMM d')}</p>
                           <p className="text-sm text-brand-pink font-medium">{booking.timeSlot}</p>
@@ -672,87 +672,87 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                </ScrollArea>
+              </CardContent>
+            </Card>
         </div>
 
         <div className="space-y-8">
           <Card className="rounded-2xl shadow-soft">
-            <CardHeader>
+              <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><CalendarIcon /> Availability</CardTitle>
               <CardDescription>Click a date to manage time slots.</CardDescription>
-            </CardHeader>
+              </CardHeader>
             <CardContent className="flex justify-center">
               <Calendar
                 mode="single"
-                selected={selectedDate}
+                  selected={selectedDate}
                 onSelect={date => date && handleDateClick(date)}
                 disabled={{ before: new Date() }}
                 className="rounded-lg"
-              />
-            </CardContent>
-          </Card>
-          
-          <Card className="rounded-2xl shadow-soft">
-            <CardHeader>
-              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Mail/> Newsletter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NewsletterForm />
-            </CardContent>
-          </Card>
+                />
+              </CardContent>
+            </Card>
 
           <Card className="rounded-2xl shadow-soft">
-            <CardHeader>
+              <CardHeader>
+              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Mail/> Newsletter</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <NewsletterForm />
+              </CardContent>
+            </Card>
+
+          <Card className="rounded-2xl shadow-soft">
+              <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><UploadCloud /> Price List</CardTitle>
-            </CardHeader>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 border rounded-lg">
                 <FileUpload onChange={(files) => setPriceListFile(files[0])} />
-              </div>
+                    </div>
               <Button onClick={handleSavePriceList} disabled={!priceListFile || isSavingPriceList} className="w-full bg-black text-white rounded-lg hover:bg-black/80 transition-colors">
-                {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
-              </Button>
+                  {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
+                </Button>
               {priceListUrl && <a href={priceListUrl} target="_blank" rel="noopener noreferrer" className="block text-center text-sm text-brand-pink hover:underline">View Current Price List</a>}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
           <Card className="rounded-2xl shadow-soft">
-            <CardHeader>
+              <CardHeader>
               <CardTitle className="font-serif text-xl">Next 7 Days Capacity</CardTitle>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
                 <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
-              </div>
+                              </div>
               <Progress value={weeklyCapacity.percentage} className="w-full" />
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
-      
+
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Manage Availability for {selectedDate && format(selectedDate, 'PPP')}</DialogTitle>
             <DialogDescription>Select the time slots that are unavailable on this day. Booked slots are disabled.</DialogDescription>
           </DialogHeader>
-          
+
           {bookingsForSelectedDate.length > 0 && (
-            <div className="py-2">
+              <div className="py-2">
                 <h4 className="font-semibold mb-2 text-sm text-gray-700">Bookings for this date:</h4>
                 <ScrollArea className="h-[100px] rounded-md border p-2 bg-gray-50">
-                    <div className="space-y-2">
-                        {bookingsForSelectedDate.map(booking => (
-                            <div key={booking.id} className="text-sm">
+                  <div className="space-y-2">
+                    {bookingsForSelectedDate.map(booking => (
+                      <div key={booking.id} className="text-sm">
                                 <strong>{booking.timeSlot}:</strong> {booking.name} ({booking.services.map(serviceLabel).join(', ')})
-                            </div>
-                        ))}
-                    </div>
+                      </div>
+                    ))}
+                  </div>
                 </ScrollArea>
-            </div>
+              </div>
           )}
 
           <ScrollArea className="max-h-[50vh]">
@@ -760,13 +760,13 @@ export default function AdminPage() {
               {allTimeSlots.map(slot => {
                 const isBooked = bookedTimeSlots.includes(slot);
                 const isChecked = managedSlots.includes(slot) || isBooked;
-                return (
+              return (
                   <div key={slot} className="flex items-center">
                     <input
                       type="checkbox"
                       id={`slot-${slot}`}
                       checked={isChecked}
-                      disabled={isBooked}
+                    disabled={isBooked}
                       onChange={() => {
                         if (isBooked) return;
                         setManagedSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot])
@@ -776,17 +776,17 @@ export default function AdminPage() {
                     <Label htmlFor={`slot-${slot}`} className={`ml-2 text-sm font-medium text-gray-900 ${isBooked ? 'line-through text-gray-400' : ''}`}>
                       {serviceLabel(slot)}
                     </Label>
-                  </div>
+                </div>
                 )
-              })}
-            </div>
+            })}
+          </div>
           </ScrollArea>
           <DialogFooter>
             <Button onClick={handleSaveAvailability} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
@@ -820,7 +820,7 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={!!isDeletingService} onOpenChange={() => setIsDeletingService(null)}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>

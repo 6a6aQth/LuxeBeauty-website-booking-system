@@ -93,7 +93,14 @@ function HomeContent() {
             </div>
             <div className="order-1 md:order-2">
               <div className="aspect-square relative overflow-hidden rounded-lg shadow-glow">
-                <Image src="/IMG_7186.png" alt="Lauryn Luxe Beauty Studio Interior" fill className="object-cover" />
+                <Image 
+                  src="/IMG_7186.png" 
+                  alt="Lauryn Luxe Beauty Studio Interior" 
+                  fill 
+                  className="object-cover"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
               </div>
             </div>
           </div>
@@ -139,6 +146,7 @@ function HomeContent() {
                     alt={service.title}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
                 <CardContent className="p-6">
@@ -166,7 +174,13 @@ function HomeContent() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-glow">
-                <Image src="/lauryn.jpg" alt="Lauryn Lambat" fill className="object-cover" />
+                <Image 
+                  src="/lauryn.jpg" 
+                  alt="Lauryn Lambat" 
+                  fill 
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
               </div>
             </div>
             <div>
@@ -237,6 +251,7 @@ function HomeContent() {
                   alt={`Instagram post ${index + 1}`}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  sizes="(max-width: 768px) 50vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                   <Instagram className="h-8 w-8 text-white" />

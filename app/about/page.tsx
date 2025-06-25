@@ -22,6 +22,7 @@ const timelineData = [
           width={400}
           height={300}
           className="rounded-lg object-cover w-full"
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </>
     ),
@@ -43,6 +44,7 @@ const timelineData = [
           width={400}
           height={300}
           className="rounded-lg object-cover w-full"
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </>
     ),
@@ -64,6 +66,7 @@ const timelineData = [
           width={400}
           height={300}
           className="rounded-lg object-cover w-full"
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </>
     ),
@@ -85,6 +88,7 @@ const timelineData = [
           width={400}
           height={300}
           className="rounded-lg object-cover w-full"
+          sizes="(max-width: 768px) 100vw, 50vw"
         />
       </>
     ),
@@ -107,6 +111,8 @@ export default function AboutPage() {
               width={800}
               height={1000}
               className="rounded-lg object-cover shadow-lg"
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
           <div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { TiktokIcon } from "@/components/tiktok-icon"
 import { AnimatedSection } from "@/components/ui/animated-section"
 import { PageHeader } from "@/components/page-header"
+import Image from "next/image"
 
 export default function Contact() {
   const address = "Lauryn Luxe Beauty Studio, Blantyre, Malawi"
@@ -161,10 +162,17 @@ export default function Contact() {
           <div className="max-w-5xl mx-auto text-center">
             <h2 className="text-3xl font-serif mb-8">Find Us</h2>
             <div
-              className="aspect-[16/9] w-full rounded-lg shadow-soft bg-cover bg-center flex flex-col items-center justify-center"
-              style={{ backgroundImage: "url('/MapPlace.png')" }}
+              className="aspect-[16/9] w-full rounded-lg shadow-soft overflow-hidden relative flex flex-col items-center justify-center"
             >
-              <div className="bg-black bg-opacity-50 p-8 rounded-lg">
+              <Image 
+                src="/MapPlace.png" 
+                alt="Map showing location of Lauryn Luxe Beauty Studio" 
+                fill
+                className="object-cover"
+                priority
+                sizes="100vw"
+              />
+              <div className="bg-black bg-opacity-50 p-8 rounded-lg z-10">
                 <p className="text-white text-xl font-semibold mb-4">{address}</p>
                 <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
                   <Button className="bg-white text-black hover:bg-gray-200">
