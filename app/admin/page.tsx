@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { getSlotsForDate, formatTime, serviceLabel, generateTimeSlots } from "@/lib/time-slots"
+import { getSlotsForDate, formatTime, generateTimeSlots } from "@/lib/time-slots"
 import Logo from "@/components/logo";
 import NewsletterForm from '@/components/newsletter-form';
 import { Separator } from "@/components/ui/separator";
@@ -48,6 +48,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils"
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
 
@@ -166,6 +167,14 @@ export default function AdminPage() {
     }
   }, [isAuthenticated])
 
+  const getServiceNames = (serviceIds: string[]): string[] => {
+    if (!services || services.length === 0) return serviceIds; // Fallback to IDs if services not loaded
+    return serviceIds.map(id => {
+      const service = services.find(s => s.id === id);
+      return service ? service.name : id; // Fallback to ID if name not found
+    });
+  };
+
   const handlePriceChange = (id: string, newPrice: string) => {
     const price = parseInt(newPrice, 10);
     if (isNaN(price)) return;
@@ -249,7 +258,7 @@ export default function AdminPage() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       bookingsToShow = bookingsToShow.filter(booking => {
-        const servicesString = Array.isArray(booking.services) ? booking.services.map(s => serviceLabel(s)).join(' ') : '';
+        const servicesString = Array.isArray(booking.services) ? getServiceNames(booking.services).join(' ') : '';
         return (
           booking.name.toLowerCase().includes(searchLower) ||
           booking.phone.toLowerCase().includes(searchLower) ||
@@ -559,7 +568,7 @@ export default function AdminPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-700">Services</p>
-                          <p className="text-gray-600">{Array.isArray(booking.services) ? booking.services.map(s => serviceLabel(s)).join(', ') : ''}</p>
+                          <p className="text-gray-600">{getServiceNames(booking.services).join(', ')}</p>
                         </div>
                         {booking.notes && (
                           <div className="md:col-span-2">
@@ -759,7 +768,7 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     {bookingsForSelectedDate.map(booking => (
                       <div key={booking.id} className="text-sm">
-                                <strong>{booking.timeSlot}:</strong> {booking.name} ({booking.services.map(serviceLabel).join(', ')})
+                                <strong>{booking.timeSlot}:</strong> {booking.name} ({getServiceNames(booking.services).join(', ')})
                       </div>
                     ))}
                   </div>
@@ -767,32 +776,30 @@ export default function AdminPage() {
               </div>
           )}
 
-          <ScrollArea className="max-h-[50vh]">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-4 pr-4">
-              {allTimeSlots.map(slot => {
-                const isBooked = bookedTimeSlots.includes(slot);
-                const isChecked = managedSlots.includes(slot) || isBooked;
+          <div className="flex flex-col space-y-2 mt-4 max-h-[200px] overflow-y-auto pr-2">
+            {allTimeSlots.map(slot => {
+              const isBooked = managedSlots.includes(slot);
+              const isActuallyBooked = bookedTimeSlots.includes(slot);
               return (
-                  <div key={slot} className="flex items-center">
-                    <input
-                      type="checkbox"
+                <div key={slot} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Checkbox
                       id={`slot-${slot}`}
-                      checked={isChecked}
-                    disabled={isBooked}
-                      onChange={() => {
-                        if (isBooked) return;
-                        setManagedSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot])
-                      }}
-                      className="w-4 h-4 text-brand-pink bg-gray-100 border-gray-300 rounded focus:ring-brand-pink disabled:opacity-50 disabled:cursor-not-allowed"
+                      checked={isBooked}
+                      onCheckedChange={() => handleTimeSlotToggle(slot)}
+                      disabled={isActuallyBooked}
                     />
-                    <Label htmlFor={`slot-${slot}`} className={`ml-2 text-sm font-medium text-gray-900 ${isBooked ? 'line-through text-gray-400' : ''}`}>
-                      {serviceLabel(slot)}
+                    <Label htmlFor={`slot-${slot}`} className={cn("ml-2 text-sm font-medium text-gray-900", isActuallyBooked ? 'line-through text-gray-400' : '')}>
+                      {formatTime(slot)}
                     </Label>
+                  </div>
+                  {isActuallyBooked && (
+                    <Badge variant="destructive" className="text-xs py-0.5 px-2 rounded-full">Booked</Badge>
+                  )}
                 </div>
-                )
+              );
             })}
           </div>
-          </ScrollArea>
           <DialogFooter>
             <Button onClick={handleSaveAvailability} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Changes</Button>
           </DialogFooter>
