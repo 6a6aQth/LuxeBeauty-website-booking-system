@@ -1,3 +1,7 @@
+'use client'
+
+import React, { useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -9,7 +13,29 @@ import NewsletterSignup from "@/components/newsletter-signup"
 import { PulsatingButton } from "@/components/ui/pulsating-button"
 import { SparklesText } from "@/components/ui/sparkles-text"
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const sectionId = searchParams.get("scroll_to")
+    if (sectionId) {
+      const element = document.getElementById(sectionId)
+      if (element) {
+        setTimeout(() => {
+          const header = document.getElementById("main-header")
+          const headerOffset = header ? header.offsetHeight : 80
+          const elementPosition = element.getBoundingClientRect().top
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          })
+        }, 100)
+      }
+    }
+  }, [searchParams])
+
   return (
     <div>
       {/* Hero Section */}
@@ -138,7 +164,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="aspect-[3/4] relative overflow-hidden rounded-lg shadow-glow">
-                <Image src="/IMG_7705.png" alt="Lauryn Lambat" fill className="object-cover" />
+                <Image src="/lauryn.jpg" alt="Lauryn Lambat" fill className="object-cover" />
               </div>
             </div>
             <div>
@@ -256,7 +282,7 @@ export default function Home() {
                 <div>
                   <p>Monday - Friday: 10:00 AM - 6:00 PM</p>
                   <p>Saturday: 10:00 AM - 4:00 PM</p>
-                  <p>Sunday: Closed</p>
+                  <p><strong>Sunday:</strong> Closed</p>
                 </div>
               </CardContent>
             </Card>
@@ -280,5 +306,13 @@ export default function Home() {
         </div>
       </AnimatedSection>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </React.Suspense>
   )
 }

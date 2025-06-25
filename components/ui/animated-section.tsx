@@ -7,9 +7,10 @@ interface AnimatedSectionProps {
   children: React.ReactNode
   className?: string
   delay?: number
+  id?: string
 }
 
-export function AnimatedSection({ children, className, delay = 0 }: AnimatedSectionProps) {
+export function AnimatedSection({ children, className, delay = 0, ...props }: AnimatedSectionProps) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, amount: 0.1 })
 
@@ -26,6 +27,7 @@ export function AnimatedSection({ children, className, delay = 0 }: AnimatedSect
       animate={isInView ? "visible" : "hidden"}
       transition={{ duration: 0.5, delay }}
       className={className}
+      {...props}
     >
       {children}
     </motion.section>

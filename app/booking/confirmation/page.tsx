@@ -164,7 +164,7 @@ export default function BookingConfirmationPage() {
 
             <div data-html2canvas-ignore="true" className="p-8 border-t border-gray-200 text-center">
                 <PrimitiveButton asChild>
-                    <Link href="/#newsletter-signup">Subscribe to Newsletter</Link>
+                    <Link href="/?scroll_to=newsletter-signup">Subscribe to Newsletter</Link>
                 </PrimitiveButton>
                 <p className="text-xs text-gray-500 mt-4 max-w-xs mx-auto">
                     Stay updated with our latest offers and news.

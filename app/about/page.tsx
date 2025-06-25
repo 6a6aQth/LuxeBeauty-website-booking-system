@@ -102,7 +102,7 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className="w-full h-auto">
             <Image
-              src="/IMG_9745.png"
+              src="/lauryn.jpg"
               alt="Beautifully manicured hands with intricate red nail art"
               width={800}
               height={1000}
