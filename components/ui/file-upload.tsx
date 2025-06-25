@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import React, { useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 
@@ -9,7 +10,6 @@ export const FileUpload = ({
   onChange?: (files: File[]) => void;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onDrop = (acceptedFiles: File[]) => {
     setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
@@ -30,9 +30,17 @@ export const FileUpload = ({
         isDragActive && "border-brand-pink bg-brand-pink/10"
       )}
     >
-      <input {...getInputProps()} ref={fileInputRef} />
+      <input {...getInputProps()} />
       <div className="flex flex-col items-center justify-center space-y-2">
-        <IconUpload className="w-8 h-8 text-gray-400" />
+        {!files.length && !isDragActive && (
+          <motion.div
+            initial={{ scale: 1 }}
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            <IconUpload className="w-8 h-8 text-gray-400" />
+          </motion.div>
+        )}
         <p className="text-gray-500">
           {isDragActive
             ? "Drop the file here..."
@@ -44,7 +52,14 @@ export const FileUpload = ({
           <p className="font-medium text-gray-900">Selected file:</p>
           <ul className="text-sm text-gray-500">
             {files.map((file, i) => (
-              <li key={i}>{file.name}</li>
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {file.name}
+              </motion.li>
             ))}
           </ul>
         </div>
