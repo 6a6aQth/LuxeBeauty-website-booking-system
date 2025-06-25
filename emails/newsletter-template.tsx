@@ -17,11 +17,10 @@ interface NewsletterEmailProps {
   subject: string;
   content: string;
   unsubscribeUrl: string;
+  baseUrl: string;
 }
 
-const baseUrl = 'https://www.laurynluxebeautystudio.com';
-
-export const NewsletterEmail = ({ subject, content, unsubscribeUrl }: NewsletterEmailProps) => (
+export const NewsletterEmail = ({ subject, content, unsubscribeUrl, baseUrl }: NewsletterEmailProps) => (
   <Html>
     <Head />
     <Preview>{subject}</Preview>

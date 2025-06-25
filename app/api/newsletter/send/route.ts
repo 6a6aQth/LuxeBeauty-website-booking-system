@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { renderNewsletterEmail } from '@/emails/newsletter-template';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,8 +24,13 @@ export async function POST(req: NextRequest) {
 
     const emailsToSend = await Promise.all(
       subscribers.map(async (subscriber) => {
-        const unsubscribeUrl = `${baseUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
-        const htmlBody = await renderNewsletterEmail({ subject, content, unsubscribeUrl });
+        const unsubscribeUrl = `${siteUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(subscriber.email)}`;
+        const htmlBody = await renderNewsletterEmail({ 
+          subject, 
+          content, 
+          unsubscribeUrl,
+          baseUrl: siteUrl, 
+        });
         const textBody = `${subject}\n\n${content}\n\nUnsubscribe here: ${unsubscribeUrl}`;
 
         return {
