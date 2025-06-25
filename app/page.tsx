@@ -44,7 +44,9 @@ function HomeContent() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="mb-8">
               <div className="text-4xl font-serif tracking-wider">LAURYN</div>
-              <div className="text-5xl font-serif italic tracking-wide">luxe</div>
+              <div className="text-5xl font-serif italic tracking-wide">
+                <span className="font-great-vibes normal-case">luxe</span>
+              </div>
               <div className="text-sm tracking-[0.2em] mt-1">B E A U T Y &nbsp; S T U D I O</div>
               <div className="text-xs tracking-[0.1em] mt-0.5">E S T D 2 0 2 2</div>
             </div>
