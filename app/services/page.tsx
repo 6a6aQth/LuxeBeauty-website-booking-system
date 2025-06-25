@@ -6,7 +6,7 @@ import type { Service } from "@prisma/client"
 import { PageHeader } from "@/components/page-header"
 import { ServicesList } from "@/components/services-list"
 
-export const revalidate = 3600
+export const dynamic = 'force-dynamic';
 
 async function getGroupedServices() {
   const services = await prisma.service.findMany({
