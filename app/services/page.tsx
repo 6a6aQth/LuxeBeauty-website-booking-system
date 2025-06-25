@@ -10,9 +10,6 @@ export const dynamic = 'force-dynamic';
 
 async function getGroupedServices() {
   const services = await prisma.service.findMany({
-    where: {
-      isAvailable: true,
-    },
     orderBy: {
       createdAt: 'asc',
     },
