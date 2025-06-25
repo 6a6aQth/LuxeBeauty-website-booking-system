@@ -177,14 +177,6 @@ export default function Booking() {
       })
       return
     }
-    if (!agreedToTerms) {
-      toast({
-        title: "Terms and Conditions",
-        description: "You must agree to the studio policies before booking.",
-        variant: "destructive",
-      });
-      return;
-    }
     setStep('payment')
   }
 

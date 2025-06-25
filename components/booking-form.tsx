@@ -334,11 +334,17 @@ export function BookingForm({
                           selected={date}
                           onSelect={handleDateSelect}
                           initialFocus
-                          disabled={(d) => fullyBookedDates.some(
-                            (bookedDate) =>
-                              new Date(d).toDateString() ===
-                              new Date(bookedDate).toDateString()
-                          )}
+                          disabled={(d) => {
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            const tomorrow = new Date(today);
+                            tomorrow.setDate(today.getDate() + 1);
+                            return d < tomorrow || fullyBookedDates.some(
+                              (bookedDate) =>
+                                new Date(d).toDateString() ===
+                                new Date(bookedDate).toDateString()
+                            );
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -400,7 +406,75 @@ export function BookingForm({
                   />
                 </div>
 
-                <div className="items-top flex space-x-2 pt-4 border-t border-gray-200">
+                <Button
+                  type="submit"
+                  className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 transition-colors"
+                  disabled={
+                    isSubmitting ||
+                    !formData.date ||
+                    formData.services.length === 0 ||
+                    !formData.timeSlot
+                  }
+                >
+                  {isSubmitting ? "Submitting..." : "Proceed to Pay"}
+                </Button>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Full Name:</span>
+                    <span className="text-gray-900 font-semibold">{formData.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Phone:</span>
+                    <span className="text-gray-900 font-semibold">{formData.phone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Date:</span>
+                    <span className="text-gray-900 font-semibold">{formData.date ? format(new Date(formData.date), "PPP") : ""}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Time Slot:</span>
+                    <span className="text-gray-900 font-semibold">{formatTime(formData.timeSlot)}</span>
+                  </div>
+                  {formData.services && formData.services.length > 0 && (
+                    <div>
+                      <span className="font-medium">Selected Services:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {formData.services.map((serviceId: string) => {
+                          const service = services.find(s => s.id === serviceId);
+                          if (!service) return null;
+                          return (
+                            <span key={service.id} className="inline-block bg-brand-pink/10 text-brand-pink border border-brand-pink/20 rounded-full px-3 py-1 text-sm font-medium">
+                              {service.name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {formData.inspirationPhotos && formData.inspirationPhotos.length > 0 && (
+                    <div>
+                      <span className="font-medium">Inspiration Photo(s):</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {formData.inspirationPhotos.map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                            <img src={url} alt={`Inspiration ${idx + 1}`} className="w-16 h-16 object-cover rounded border border-gray-200 shadow-sm hover:scale-105 transition-transform" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {formData.notes && formData.notes.trim() !== "" && (
+                    <div>
+                      <span className="font-medium">Notes:</span>
+                      <p className="text-gray-700 mt-1">{formData.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="items-top flex space-x-2">
                   <Checkbox
                     id="terms"
                     checked={agreedToTerms}
@@ -413,76 +487,30 @@ export function BookingForm({
                       htmlFor="terms"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      I agree to the studio policies
+                      I agree to the{' '}
+                      <a href="#studio-policies" className="text-brand-pink underline hover:text-brand-pink/80" target="_blank" rel="noopener noreferrer">
+                        Studio Policies
+                      </a>
                     </label>
-                    <StudioPolicies />
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 transition-colors"
-                  disabled={
-                    isSubmitting ||
-                    !agreedToTerms ||
-                    !formData.date ||
-                    formData.services.length === 0 ||
-                    !formData.timeSlot
-                  }
-                >
-                  {isSubmitting ? "Submitting..." : "Proceed to Pay"}
-                </Button>
-              </form>
-            ) : (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold">Review Your Booking</h3>
-                  <p className="text-sm text-gray-500">
-                    Please confirm the details below before payment.
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => setStep("form")}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Go Back & Edit
+                  </Button>
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isPaying || !agreedToTerms}
+                    className="w-full bg-green-500 text-white hover:bg-green-600"
+                  >
+                    {isPaying ? "Processing..." : "Pay K10,000 Now"}
+                  </Button>
                 </div>
-                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div className="flex justify-between">
-                    <span>Full Name:</span>{" "}
-                    <strong className="text-gray-900">{formData.name}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Phone:</span>{" "}
-                    <strong className="text-gray-900">{formData.phone}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Date:</span>{" "}
-                    <strong className="text-gray-900">
-                      {formData.date ? format(new Date(formData.date), "PPP") : ""}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Time Slot:</span>{" "}
-                    <strong className="text-gray-900">
-                      {formatTime(formData.timeSlot)}
-                    </strong>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Notes:</p>
-                    <p className="text-sm text-gray-600">
-                      {formData.notes || "N/A"}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setStep("form")}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Go Back & Edit
-                </Button>
-                <Button
-                  onClick={handlePayment}
-                  disabled={isPaying}
-                  className="w-full bg-green-500 text-white hover:bg-green-600"
-                >
-                  {isPaying ? "Processing..." : "Pay K10,000 Now"}
-                </Button>
               </div>
             )}
           </CardContent>

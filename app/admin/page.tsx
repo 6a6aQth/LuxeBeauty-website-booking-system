@@ -492,13 +492,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="p-0">
             <form onSubmit={handleLogin} className="space-y-4 pt-4">
-              <Input
-                type="password"
+                <Input
+                  type="password"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 className="rounded-lg text-center bg-gray-100 dark:bg-gray-800"
-              />
+                />
               <Button type="submit" className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
                 Login
               </Button>
