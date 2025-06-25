@@ -109,7 +109,6 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>([])
   const [isSavingPrices, setIsSavingPrices] = useState(false)
   const [isManageDateOpen, setIsManageDateOpen] = useState(false)
   const [managedSlots, setManagedSlots] = useState<string[]>([])
@@ -125,6 +124,15 @@ export default function AdminPage() {
   const isMobile = useIsMobile();
 
   useEffect(() => setIsClient(true), [])
+
+  // NEW useEffect hook to synchronize managedSlots with unavailableDates
+  useEffect(() => {
+    if (isModalOpen && selectedDate) {
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
+      const unavailableForDate = unavailableDates.find(d => d.date === dateString);
+      setManagedSlots(unavailableForDate ? unavailableForDate.timeSlots : []);
+    }
+  }, [isModalOpen, selectedDate, unavailableDates]); // Dependency array includes unavailableDates
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
@@ -318,23 +326,35 @@ export default function AdminPage() {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
 
     try {
-      await fetch('/api/unavailable-dates', {
+      const response = await fetch('/api/unavailable-dates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateStr, slots: selectedTimeSlots }),
+        body: JSON.stringify({ date: dateStr, slots: managedSlots }),
       });
-      toast({ title: "Success", description: "Availability updated successfully." });
-      
-      const res = await fetch('/api/unavailable-dates');
-      if (res.ok) {
-        setUnavailableDates(await res.json());
+
+      if (!response.ok) {
+        throw new Error('Failed to update availability');
       }
       
+      const updatedUnavailableDate = await response.json();
+      setUnavailableDates(prev => {
+        const existingIndex = prev.findIndex(u => u.date === updatedUnavailableDate.date);
+        if (existingIndex > -1) {
+          const newArr = [...prev];
+          newArr[existingIndex] = updatedUnavailableDate;
+          return newArr;
+        } else {
+          return [...prev, updatedUnavailableDate];
+        }
+      });
+
+      toast({ title: "Success", description: "Availability updated successfully." });
     } catch (error) {
       toast({ title: "Error", description: "Failed to update availability.", variant: "destructive" });
+    } finally {
+      setIsModalOpen(false);
+      fetchAdminData(); // Ensure latest data is fetched after saving
     }
-
-    setIsModalOpen(false);
   };
 
   const bookedDays = useMemo(() => {
@@ -384,7 +404,7 @@ export default function AdminPage() {
     setSelectedDate(date);
     const dateString = date.toISOString().split('T')[0];
     const unavailableForDate = unavailableDates.find(d => d.date === dateString);
-    setSelectedTimeSlots(unavailableForDate ? unavailableForDate.timeSlots : []);
+    setManagedSlots(unavailableForDate ? unavailableForDate.timeSlots : []);
     setIsModalOpen(true);
   };
 
@@ -568,7 +588,7 @@ export default function AdminPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-700">Services</p>
-                          <p className="text-gray-600">{getServiceNames(booking.services).join(', ')}</p>
+                          <p className="text-gray-600">{Array.isArray(booking.services) ? getServiceNames(booking.services).join(', ') : ''}</p>
                         </div>
                         {booking.notes && (
                           <div className="md:col-span-2">
@@ -755,7 +775,7 @@ export default function AdminPage() {
         </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent key={selectedDate?.toISOString() || 'default'} className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Manage Availability for {selectedDate && format(selectedDate, 'PPP')}</DialogTitle>
             <DialogDescription>Select the time slots that are unavailable on this day. Booked slots are disabled.</DialogDescription>
@@ -768,7 +788,7 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     {bookingsForSelectedDate.map(booking => (
                       <div key={booking.id} className="text-sm">
-                                <strong>{booking.timeSlot}:</strong> {booking.name} ({getServiceNames(booking.services).join(', ')})
+                                 <strong>{booking.timeSlot}:</strong> {booking.name} ({Array.isArray(booking.services) ? getServiceNames(booking.services).join(', ') : ''})
                       </div>
                     ))}
                   </div>
@@ -776,30 +796,33 @@ export default function AdminPage() {
               </div>
           )}
 
-          <div className="flex flex-col space-y-2 mt-4 max-h-[200px] overflow-y-auto pr-2">
-            {allTimeSlots.map(slot => {
-              const isBooked = managedSlots.includes(slot);
-              const isActuallyBooked = bookedTimeSlots.includes(slot);
-              return (
-                <div key={slot} className="flex items-center justify-between">
-                  <div className="flex items-center">
+          <ScrollArea className="max-h-[50vh]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-4 pr-4">
+              {allTimeSlots.map(slot => {
+                const isBooked = bookedTimeSlots.includes(slot);
+                return (
+                  <div key={slot} className="flex items-center">
                     <Checkbox
                       id={`slot-${slot}`}
-                      checked={isBooked}
-                      onCheckedChange={() => handleTimeSlotToggle(slot)}
-                      disabled={isActuallyBooked}
+                      checked={managedSlots.includes(slot)}
+                      disabled={isBooked}
+                      onCheckedChange={() => {
+                        if (isBooked) return;
+                        setManagedSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]);
+                      }}
                     />
-                    <Label htmlFor={`slot-${slot}`} className={cn("ml-2 text-sm font-medium text-gray-900", isActuallyBooked ? 'line-through text-gray-400' : '')}>
+                    <Label htmlFor={`slot-${slot}`} className={cn("ml-2 text-sm font-medium text-gray-900", isBooked ? 'line-through text-gray-400' : '')}>
                       {formatTime(slot)}
                     </Label>
+                    {isBooked && (
+                      <Badge variant="destructive" className="ml-auto text-xs py-0.5 px-2 rounded-full">Booked</Badge>
+                    )}
                   </div>
-                  {isActuallyBooked && (
-                    <Badge variant="destructive" className="text-xs py-0.5 px-2 rounded-full">Booked</Badge>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
           <DialogFooter>
             <Button onClick={handleSaveAvailability} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Changes</Button>
           </DialogFooter>

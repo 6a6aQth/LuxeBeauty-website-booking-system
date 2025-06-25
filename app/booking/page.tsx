@@ -94,8 +94,12 @@ export default function Booking() {
         ]);
 
         if (unavailableRes.ok) {
-          const unavailableData = await unavailableRes.json();
-          setUnavailableSlots(unavailableData);
+          const unavailableData: { date: string; timeSlots: string[] }[] = await unavailableRes.json();
+          const transformedUnavailableSlots: Record<string, string[]> = {};
+          unavailableData.forEach(item => {
+            transformedUnavailableSlots[item.date] = item.timeSlots;
+          });
+          setUnavailableSlots(transformedUnavailableSlots);
         } else {
           console.error("Failed to fetch unavailable dates");
         }
