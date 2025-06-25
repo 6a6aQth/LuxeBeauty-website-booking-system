@@ -41,6 +41,13 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { FileUpload } from '@/components/ui/file-upload'
+import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
 
@@ -113,13 +120,10 @@ export default function AdminPage() {
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [isDeletingService, setIsDeletingService] = useState<Service | null>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
-
-  // State to prevent hydration errors
   const [isClient, setIsClient] = useState(false)
+  const isMobile = useIsMobile();
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  useEffect(() => setIsClient(true), [])
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
@@ -261,41 +265,29 @@ export default function AdminPage() {
   
   const weeklyCapacity = useMemo(() => {
     const today = new Date();
+    const next7Days = addDays(today, 7);
     today.setHours(0, 0, 0, 0);
-    
-    const sevenDaysFromNow = addDays(today, 7);
 
-    const bookingsInNext7Days = bookings.filter(booking => {
-      try {
-        const bookingDate = parseISO(booking.date);
-        return isValid(bookingDate) && isWithinInterval(bookingDate, { start: today, end: sevenDaysFromNow });
-      } catch {
-        return false;
-      }
+    const bookingsInNext7Days = bookings.filter(b => {
+        try {
+            const bookingDate = parseISO(b.date);
+            return isValid(bookingDate) && isWithinInterval(bookingDate, { start: today, end: next7Days });
+        } catch {
+            return false;
+        }
     });
 
-    let totalAvailableSlots = 0;
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(today, i);
-      const dateStr = format(date, "yyyy-MM-dd");
-      const daySlots = getSlotsForDate(date);
-      const unavailableForDate = unavailableDates.find(d => d.date === dateStr);
-      const unavailableCount = unavailableForDate ? unavailableForDate.timeSlots.length : 0;
-      const availableCount = daySlots.length - unavailableCount;
-      totalAvailableSlots += availableCount;
+    const totalSlotsInNext7Days = allTimeSlots.length * 7;
+    const bookedSlots = bookingsInNext7Days.length;
+
+    if (totalSlotsInNext7Days === 0) {
+        return { count: 0, percentage: 0 };
     }
 
-    if (totalAvailableSlots <= 0) {
-      return { count: bookingsInNext7Days.length, percentage: bookingsInNext7Days.length > 0 ? 100 : 0 };
-    }
+    const percentage = (bookedSlots / totalSlotsInNext7Days) * 100;
 
-    const percentage = Math.min((bookingsInNext7Days.length / totalAvailableSlots) * 100, 100);
-
-    return {
-      count: bookingsInNext7Days.length,
-      percentage: percentage,
-    };
-  }, [bookings, unavailableDates]);
+    return { count: bookedSlots, percentage };
+  }, [bookings, allTimeSlots]);
 
   const availableSlotsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
@@ -591,52 +583,95 @@ export default function AdminPage() {
           </Card>
           
           <Card className="rounded-2xl shadow-soft">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><Settings/> Manage Services</CardTitle>
-              <Button onClick={() => handleOpenServiceModal(null)} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2">
+              <Button onClick={() => handleOpenServiceModal(null)} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2 self-end sm:self-center">
                 <PlusCircle className="w-5 h-5" />
                 Add Service
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 mb-4 border-b">
-                {serviceCategories.map(cat => (
-                  <button 
-                    key={cat}
-                    onClick={() => setCategoryFilter(cat)}
-                    className={`capitalize pb-2 text-sm font-medium transition-colors ${categoryFilter === cat ? 'text-brand-pink border-b-2 border-brand-pink' : 'text-gray-500 hover:text-gray-800'}`}
-                  >
-                    {cat.replace('-', ' ')}
-                  </button>
-                ))}
-              </div>
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-3 pr-4">
-                  {filteredServices.map(service => (
-                    <div key={service.id} className="flex items-center justify-between p-3 bg-gray-100 rounded-xl">
-                      <div>
-                        <p className="font-semibold">{service.name}</p>
-                        {service.description && (
-                          <p className="text-sm text-gray-500 truncate" title={service.description}>
-                            {service.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          checked={service.isAvailable}
-                          onCheckedChange={() => handleToggleServiceAvailability(service)}
-                        />
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenServiceModal(service)} className="text-gray-500 hover:text-blue-500 rounded-full">
-                          <Edit className="w-5 h-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setIsDeletingService(service)} className="text-gray-500 hover:text-red-500 rounded-full">
-                          <Trash2 className="w-5 h-5" />
-                        </Button>
-                      </div>
-                    </div>
+              {isMobile ? (
+                <div className="mb-4">
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat} className="capitalize">
+                          {cat.replace('-', ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mb-4 border-b overflow-x-auto pb-2">
+                  {serviceCategories.map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => setCategoryFilter(cat)}
+                      className={`capitalize pb-2 text-sm font-medium transition-colors whitespace-nowrap ${categoryFilter === cat ? 'text-brand-pink border-b-2 border-brand-pink' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                      {cat.replace('-', ' ')}
+                    </button>
                   ))}
                 </div>
+              )}
+              <ScrollArea className="h-[400px]">
+                {isMobile ? (
+                  <Accordion type="single" collapsible className="w-full">
+                    {filteredServices.map(service => (
+                      <AccordionItem value={service.id} key={service.id}>
+                        <AccordionTrigger className="p-3 bg-gray-100 rounded-xl">
+                          <span className="font-semibold text-left">{service.name}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-3 bg-gray-50 rounded-b-xl">
+                          <p className="text-sm text-gray-600 mb-4">{service.description || 'No description.'}</p>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor={`switch-${service.id}`} className="flex items-center gap-2 text-sm font-medium">
+                              <Switch
+                                id={`switch-${service.id}`}
+                                checked={service.isAvailable}
+                                onCheckedChange={() => handleToggleServiceAvailability(service)}
+                              />
+                              Service Available
+                            </Label>
+                            <Button variant="outline" size="sm" onClick={() => handleOpenServiceModal(service)} className="flex items-center gap-2">
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <div className="space-y-3 pr-4">
+                    {filteredServices.map(service => (
+                      <div key={service.id} className="flex items-center justify-between p-3 bg-gray-100 rounded-xl gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{service.name}</p>
+                          {service.description && (
+                            <p className="text-sm text-gray-500 truncate" title={service.description}>
+                              {service.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                          <Switch
+                            checked={service.isAvailable}
+                            onCheckedChange={() => handleToggleServiceAvailability(service)}
+                          />
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenServiceModal(service)} className="text-gray-500 hover:text-blue-500 rounded-full">
+                            <Edit className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -680,6 +715,19 @@ export default function AdminPage() {
                 {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
               </Button>
               {priceListUrl && <a href={priceListUrl} target="_blank" rel="noopener noreferrer" className="block text-center text-sm text-brand-pink hover:underline">View Current Price List</a>}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-soft">
+            <CardHeader>
+              <CardTitle className="font-serif text-xl">Next 7 Days Capacity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
+                <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
+              </div>
+              <Progress value={weeklyCapacity.percentage} className="w-full" />
             </CardContent>
           </Card>
         </div>
@@ -751,11 +799,23 @@ export default function AdminPage() {
             <Select value={editingService?.category} onValueChange={(value) => setEditingService(s => s ? {...s, category: value} : null)}>
               <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
               <SelectContent>
-                {serviceCategories.filter(c => c !== 'all').map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                {serviceCategories.filter(c => c !== 'all').map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('-', ' ')}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-between">
+            {editingService?.id && (
+              <Button 
+                variant="destructive"
+                onClick={() => {
+                  setIsDeletingService(editingService)
+                  setIsServiceModalOpen(false)
+                }} 
+                className="bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Delete Service
+              </Button>
+            )}
             <Button onClick={handleSaveService} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Service</Button>
           </DialogFooter>
         </DialogContent>
