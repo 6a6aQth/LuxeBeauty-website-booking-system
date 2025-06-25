@@ -34,6 +34,8 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { BookingFormProps, Service } from "@/types/types";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { StudioPoliciesContent } from "@/components/studio-policies";
 
 export function BookingForm({
   formData,
@@ -56,6 +58,7 @@ export function BookingForm({
 }: BookingFormProps) {
   const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -488,12 +491,24 @@ export function BookingForm({
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
                       I agree to the{' '}
-                      <a href="#studio-policies" className="text-brand-pink underline hover:text-brand-pink/80" target="_blank" rel="noopener noreferrer">
+                      <button
+                        type="button"
+                        className="text-brand-pink underline hover:text-brand-pink/80 focus:outline-none"
+                        onClick={() => setShowPoliciesDialog(true)}
+                      >
                         Studio Policies
-                      </a>
+                      </button>
                     </label>
                   </div>
                 </div>
+
+                <Dialog open={showPoliciesDialog} onOpenChange={setShowPoliciesDialog}>
+                  <DialogContent className="max-w-lg">
+                    <DialogTitle className="text-2xl font-serif mb-1">Studio Policies</DialogTitle>
+                    <DialogDescription className="text-gray-600 mb-4 text-sm">Please read our policies carefully before confirming your appointment.</DialogDescription>
+                    <StudioPoliciesContent />
+                  </DialogContent>
+                </Dialog>
 
                 <div className="grid grid-cols-2 gap-4">
                   <Button

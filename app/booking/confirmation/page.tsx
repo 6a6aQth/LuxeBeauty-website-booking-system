@@ -9,6 +9,7 @@ import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { Button } from '@/components/ui/animated-download-button'
 import { Mail, Phone, Home } from 'lucide-react'
+import { Service } from '@/types/types';
 
 interface BookingDetails {
   id: string
@@ -26,6 +27,7 @@ export default function BookingConfirmationPage() {
     null
   )
   const [isClient, setIsClient] = useState(false)
+  const [allServices, setAllServices] = useState<Service[]>([]);
   const ticketRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,7 +40,27 @@ export default function BookingConfirmationPage() {
     } catch (error) {
       console.error('Failed to parse booking details from session storage', error)
     }
+
+    const fetchServices = async () => {
+      try {
+        const response = await fetch('/api/services');
+        if (response.ok) {
+          const data = await response.json();
+          setAllServices(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch services', error);
+      }
+    };
+    fetchServices();
   }, [])
+
+  const getServiceNames = (serviceIds: string[]) => {
+    return serviceIds.map(id => {
+      const service = allServices.find(s => s.id === id);
+      return service ? service.name : id; // Fallback to ID if name not found
+    });
+  };
 
   const handleDownloadTicket = async () => {
     const { default: html2canvas } = await import('html2canvas')
@@ -146,7 +168,7 @@ export default function BookingConfirmationPage() {
                 </p>
                 <p>
                   <strong>Services:</strong>{' '}
-                  {bookingDetails.services.map(serviceLabel).join(', ')}
+                  {getServiceNames(bookingDetails.services).join(', ')}
                 </p>
                 <p>
                   <strong>Booking Fee:</strong> {bookingDetails.fee}
