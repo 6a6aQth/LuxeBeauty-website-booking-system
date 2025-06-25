@@ -44,6 +44,7 @@ model Service {
   description String?
   duration    Int // Duration in minutes
   category    String // e.g., 'manicure', 'pedicure'
+  isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

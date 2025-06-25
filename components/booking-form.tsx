@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -30,6 +31,9 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
+import { BookingFormProps, Service } from "@/types/types";
+import { X } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 
 export function BookingForm({
   formData,
@@ -43,14 +47,43 @@ export function BookingForm({
   handleSelectChange,
   availableSlotsForSelectedDate,
   bookedSlots,
-  serviceOptions,
   formatTime,
   isPaying,
   agreedToTerms,
   setAgreedToTerms,
   handlePayment,
   setStep,
-}: any) {
+}: BookingFormProps) {
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch('/api/services');
+        if (response.ok) {
+          const data = await response.json();
+          setServices(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch services', error);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
+  const categories = React.useMemo(() => {
+    if (services.length === 0) return [];
+    const cats = services.map(s => s.category);
+    return Array.from(new Set(cats));
+  }, [services]);
+
+  const filteredServices = React.useMemo(() => {
+    if (!selectedCategory) return [];
+    return services.filter(s => s.category === selectedCategory);
+  }, [services, selectedCategory]);
+
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
@@ -81,7 +114,7 @@ export function BookingForm({
   return (
     <Card className="max-w-4xl mx-auto border-none shadow-2xl overflow-hidden">
       <div className="grid md:grid-cols-2">
-        <div className="relative bg-gray-100 p-8 hidden md:block">
+        <div className="relative bg-gray-100 p-8">
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: "url('/IMG_9067.png')" }}
@@ -167,43 +200,105 @@ export function BookingForm({
 
                 <div className="space-y-3 pt-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    Select Services
+                    Select Service Category
                   </Label>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                    {serviceOptions.map((option: any) => (
-                      <div
-                        key={option.value}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          id={`service-${option.value}`}
-                          name="services"
-                          value={option.value}
-                          checked={formData.services.includes(option.value)}
-                          onCheckedChange={() => {
-                            const newServices = formData.services.includes(
-                              option.value
-                            )
-                              ? formData.services.filter(
-                                  (s: any) => s !== option.value
-                                )
-                              : [...formData.services, option.value];
-                            setFormData((prev: any) => ({
-                              ...prev,
-                              services: newServices,
-                            }));
-                          }}
-                        />
-                        <Label
-                          htmlFor={`service-${option.value}`}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {option.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  <Select onValueChange={setSelectedCategory} value={selectedCategory || ''}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {selectedCategory && (
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Select Services
+                    </Label>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      {filteredServices.map((service) => (
+                        <div
+                          key={service.id}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`service-${service.id}`}
+                            name="services"
+                            value={service.id}
+                            checked={formData.services.includes(service.id)}
+                            disabled={!service.isAvailable}
+                            onCheckedChange={() => {
+                              const newServices = formData.services.includes(
+                                service.id
+                              )
+                                ? formData.services.filter(
+                                    (s: any) => s !== service.id
+                                  )
+                                : [...formData.services, service.id];
+                              setFormData((prev: any) => ({
+                                ...prev,
+                                services: newServices,
+                              }));
+                            }}
+                          />
+                          <Label
+                            htmlFor={`service-${service.id}`}
+                            className={`text-sm font-normal cursor-pointer ${
+                              !service.isAvailable ? 'text-gray-400' : ''
+                            }`}
+                          >
+                            {service.name}
+                            {!service.isAvailable && ' (Unavailable)'}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {formData.services.length > 0 && (
+                  <div className="space-y-3 pt-4">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Selected Services
+                    </Label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-gray-100 rounded-lg">
+                      {formData.services.map((serviceId: string) => {
+                        const service = services.find(s => s.id === serviceId);
+                        if (!service) return null;
+                        return (
+                          <Badge
+                            key={service.id}
+                            variant="secondary"
+                            className="flex items-center gap-2"
+                          >
+                            <span>{service.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newServices = formData.services.filter(
+                                  (s: any) => s !== serviceId
+                                );
+                                setFormData((prev: any) => ({
+                                  ...prev,
+                                  services: newServices,
+                                }));
+                              }}
+                              className="rounded-full hover:bg-gray-300 p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid sm:grid-cols-2 gap-4 pt-2">
                   <Popover>
@@ -319,10 +414,7 @@ export function BookingForm({
                       <div className="text-right font-semibold">
                         {formData.services.map((s: any) => (
                           <div key={s}>
-                            {
-                              serviceOptions.find((opt: any) => opt.value === s)
-                                ?.label
-                            }
+                            {services.find((service) => service.id === s)?.name}
                           </div>
                         ))}
                       </div>

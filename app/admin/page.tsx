@@ -49,6 +49,7 @@ interface Service {
   description: string | null;
   duration: number;
   category: string;
+  isAvailable: boolean;
 }
 
 interface Booking {
@@ -85,6 +86,7 @@ const emptyService: Service = {
   description: '',
   duration: 60,
   category: 'manicure',
+  isAvailable: true,
 }
 
 export default function AdminPage() {
@@ -443,6 +445,25 @@ export default function AdminPage() {
     }
   }
 
+  const handleToggleServiceAvailability = async (service: Service) => {
+    try {
+      const response = await fetch(`/api/services/${service.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAvailable: !service.isAvailable }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update service availability');
+      }
+
+      toast({ title: "Success", description: "Service availability has been updated." });
+      fetchAdminData();
+    } catch (error) {
+      toast({ title: "Error", description: "Could not update availability.", variant: "destructive" });
+    }
+  };
+
   const filteredServices = useMemo(() => {
     if (categoryFilter === 'all') {
       return services
@@ -551,6 +572,10 @@ export default function AdminPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Switch
+                            checked={service.isAvailable}
+                            onCheckedChange={() => handleToggleServiceAvailability(service)}
+                          />
                           <Button
                             variant="outline"
                             size="icon"
