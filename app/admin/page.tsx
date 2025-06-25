@@ -120,8 +120,8 @@ export default function AdminPage() {
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
-  const fetchAdminData = async () => {
-    try {
+    const fetchAdminData = async () => {
+      try {
       const [bookingsRes, unavailableRes, servicesRes, priceListRes] =
         await Promise.all([
           fetch('/api/bookings'),
@@ -600,7 +600,7 @@ export default function AdminPage() {
                   <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
                 </div>
                 <Progress value={weeklyCapacity.percentage} className="w-full [&>div]:bg-brand-blush-foreground" />
-              </CardContent>
+                </CardContent>
             </Card>
 
             <Card className="shadow-lg">
