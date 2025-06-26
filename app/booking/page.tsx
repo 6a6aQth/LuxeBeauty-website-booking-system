@@ -28,6 +28,12 @@ import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { FileUpload } from "@/components/ui/file-upload"
 import { BookingForm } from "@/components/booking-form"
 
+declare global {
+  interface Window {
+    PaychanguCheckout?: any;
+  }
+}
+
 const loadingStates = [
   { text: "Processing Payment" },
   { text: "Payment Received" },
@@ -185,45 +191,77 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
-    setIsPaying(true)
-    setLoading(true)
-
-    try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+    if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
+      setIsPaying(true);
+      setLoading(true);
+      const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+      window.PaychanguCheckout({
+        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
+        tx_ref,
+        amount: 10000,
+        currency: "MWK",
+        callback_url: `${window.location.origin}/api/callback`,
+        return_url: `${window.location.origin}/booking/confirmation`,
+        customer: {
+          email: formData.email,
+          first_name: formData.name.split(' ')[0] || formData.name,
+          last_name: formData.name.split(' ').slice(1).join(' ') || formData.name,
+        },
+        customization: {
+          title: "Lauryn Luxe Booking",
+          description: "Booking deposit for Lauryn Luxe Beauty Studio",
+        },
+        meta: {
+          phone: formData.phone,
+        },
+        onclose: () => {
+          setIsPaying(false);
+          setLoading(false);
+        },
+        callback: async (response: any) => {
+          if (response.status === "successful") {
+            try {
+              const bookingRes = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, tx_ref }),
+              });
+              if (!bookingRes.ok) throw new Error('Failed to create booking');
+              const newBooking = await bookingRes.json();
+              const bookingDetails = {
+                ...newBooking,
+                fee: "K10,000 (Paid)",
+              };
+              sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+              setTimeout(() => {
+                router.push("/booking/confirmation");
+              }, 2000);
+            } catch (error) {
+              toast({
+                title: "Booking Failed",
+                description: "Could not save your appointment. Please try again.",
+                variant: "destructive",
+              });
+              setIsPaying(false);
+              setLoading(false);
+            }
+          } else {
+            toast({
+              title: "Payment Failed",
+              description: "Your payment was not successful. Please try again.",
+              variant: "destructive",
+            });
+            setIsPaying(false);
+            setLoading(false);
+          }
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create booking');
-      }
-
-      const newBooking = await response.json();
-
-      const bookingDetails = {
-        ...newBooking,
-        fee: "K10,000 (Paid)",
-      };
-
-      sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
-      
-      // Allow loader to finish before navigating
-      setTimeout(() => {
-        router.push("/booking/confirmation");
-      }, 2000);
-
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Booking Failed",
-        description: "Could not save your appointment. Please try again.",
-        variant: "destructive",
-      });
+    } else {
+      alert("Payment library not loaded. Please try again.");
       setIsPaying(false);
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFileChange = async (files: File[]) => {
     if (files.length === 0) return;
