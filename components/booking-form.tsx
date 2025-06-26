@@ -59,6 +59,7 @@ export function BookingForm({
   const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -207,7 +208,7 @@ export function BookingForm({
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="Email Address (Optional)"
+                    placeholder="Email Address"
                     value={formData.email}
                     onChange={handleChange}
                     className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
@@ -326,7 +327,7 @@ export function BookingForm({
                       Select Date & Time
                     </Label>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Popover>
+                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -347,7 +348,10 @@ export function BookingForm({
                           <Calendar
                             mode="single"
                             selected={date}
-                            onSelect={handleDateSelect}
+                            onSelect={(selectedDate) => {
+                              handleDateSelect(selectedDate);
+                              setCalendarOpen(false);
+                            }}
                             initialFocus
                             disabled={(d) => {
                               const today = new Date();
