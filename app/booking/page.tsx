@@ -196,12 +196,11 @@ export default function Booking() {
       setLoading(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
       window.PaychanguCheckout({
-        public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
+        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A", // <-- replace with your real live key
         tx_ref,
         amount: 1000,
         currency: "MWK",
         callback_url: "https://www.laurynluxebeautystudio.com/api/callback",
-        return_url:  "https://www.laurynluxebeautystudio.com/booking/confirmation",
         customer: {
           email: formData.email,
           first_name: formData.name.split(' ')[0] || formData.name,
