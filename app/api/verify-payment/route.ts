@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
-    const verificationUrl = `https://api.paychangu.com/v1/transaction/verify/${tx_ref}`;
+    const verificationUrl = `https://api.paychangu.com/verify-payment/${tx_ref}`;
     
     const verificationResponse = await fetch(verificationUrl, {
       headers: {
