@@ -82,6 +82,8 @@ export default function Booking() {
   const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false)
   const bookingFormRef = useRef<HTMLDivElement>(null);
+  const [paymentStarted, setPaymentStarted] = useState(false);
+  const [paymentCancelled, setPaymentCancelled] = useState(false);
 
   useEffect(() => {
     // Clear any previous booking data when starting a new booking
@@ -197,6 +199,7 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
+    setPaymentStarted(true);
     setLoading(true); // Show loader immediately when Pay is clicked
     // Encode the form data to be passed safely in the URL.
     const encodedFormData = btoa(JSON.stringify(formData));
@@ -229,14 +232,9 @@ export default function Booking() {
           phone: formData.phone,
         },
         onclose: () => {
-          console.log('PayChangu onclose fired');
           setIsPaying(false);
-          setLoading(false);
-          // Redirect to verifying page with a cancelled flag and form data
-          const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
-          callbackUrl.searchParams.set('cancelled', '1');
-          callbackUrl.searchParams.set('data', encodedFormData);
-          window.location.href = callbackUrl.toString();
+          setLoading(false); // Hide loader if popup is closed
+          setPaymentCancelled(true); // Show cancellation modal
         },
         callback: async (response: any) => {
           if (response.status === "successful") {
@@ -373,6 +371,26 @@ export default function Booking() {
           {/* Existing code for the dialog content */}
         </DialogContent>
       </Dialog>
+
+      {paymentCancelled && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-8 rounded shadow text-center">
+            <h2 className="text-xl font-bold mb-4 text-red-600">Payment Cancelled</h2>
+            <p className="mb-6">You cancelled the payment. Would you like to try booking again?</p>
+            <button
+              className="bg-brand-pink text-white px-4 py-2 rounded"
+              onClick={() => {
+                setPaymentCancelled(false);
+                setPaymentStarted(false);
+                setStep('form'); // Reset to booking form step
+                // Optionally reset formData here if you want a full reset
+              }}
+            >
+              Try Booking Again
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
