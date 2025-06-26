@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     const verificationData = await verificationResponse.json();
+    console.log('PayChangu verificationData:', verificationData); // Log the full response for debugging
 
     // Check if the transaction was successful according to PayChangu's data
     if (verificationData.status !== 'success' || verificationData.data.status !== 'successful') {
