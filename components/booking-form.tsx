@@ -107,22 +107,34 @@ export function BookingForm({
     setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
+  const handleRemoveImage = (idx: number) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      inspirationPhotos: prev.inspirationPhotos.filter((_: any, i: number) => i !== idx),
+    }));
+  };
+
   const handleFileChange = async (files: File[]) => {
     if (files.length > 0) {
-      const file = files[0];
+      setFileUploading(true);
       try {
-        setFileUploading(true);
-        const response = await fetch(
-          `/api/bookings/upload?filename=${file.name}`,
-          {
-            method: "POST",
-            body: file,
-          }
-        );
-        const newBlob = await response.json();
+        const remainingSlots = 5 - (formData.inspirationPhotos?.length || 0);
+        const filesToUpload = files.slice(0, remainingSlots);
+        const uploadedUrls: string[] = [];
+        for (const file of filesToUpload) {
+          const response = await fetch(
+            `/api/bookings/upload?filename=${file.name}`,
+            {
+              method: "POST",
+              body: file,
+            }
+          );
+          const newBlob = await response.json();
+          uploadedUrls.push(newBlob.url);
+        }
         setFormData((prev: any) => ({
           ...prev,
-          inspirationPhotos: [...(prev.inspirationPhotos || []), newBlob.url],
+          inspirationPhotos: [...(prev.inspirationPhotos || []), ...uploadedUrls],
         }));
       } catch (error) {
         console.error("Failed to upload file", error);
@@ -447,6 +459,21 @@ export function BookingForm({
                       onChange={handleFileChange}
                       uploadedFiles={formData.inspirationPhotos}
                     />
+                    {formData.inspirationPhotos && formData.inspirationPhotos.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {formData.inspirationPhotos.map((url: string, idx: number) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            aria-label="Remove image"
+                            className="hidden"
+                            onClick={() => handleRemoveImage(idx)}
+                          >
+                            Remove
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <Button
