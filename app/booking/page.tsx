@@ -191,9 +191,8 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
-    // Save form data to local storage before initiating payment.
-    // This is more persistent than session storage across redirects.
-    localStorage.setItem('lauryn-luxe-booking-form', JSON.stringify(formData));
+    // Encode the form data to be passed safely in the URL.
+    const encodedFormData = btoa(JSON.stringify(formData));
 
     // @ts-ignore
     if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
@@ -201,8 +200,9 @@ export default function Booking() {
       setLoading(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
       
-      // Diagnostic log to check the environment variable
-      console.log('App URL:', process.env.NEXT_PUBLIC_APP_URL);
+      const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
+      // We will append our own data parameter to the URL. PayChangu will add its own parameters like tx_ref.
+      callbackUrl.searchParams.set('data', encodedFormData);
 
       // @ts-ignore
       window.PaychanguCheckout({
@@ -210,8 +210,8 @@ export default function Booking() {
         tx_ref,
         amount: 1000,
         currency: "MWK",
-        // Use the environment variable for a reliable callback URL
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`,
+        // Pass the full URL with our encoded data.
+        callback_url: callbackUrl.toString(),
         customer: {
           email: formData.email,
           first_name: formData.name.split(' ')[0] || formData.name,

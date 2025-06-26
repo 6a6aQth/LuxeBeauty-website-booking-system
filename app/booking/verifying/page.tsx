@@ -15,19 +15,22 @@ function VerifyingPayment() {
 
   useEffect(() => {
     const tx_ref = searchParams.get('tx_ref');
-    const storedFormData = localStorage.getItem('lauryn-luxe-booking-form');
+    const encodedFormData = searchParams.get('data');
 
-    if (storedFormData) {
-      localStorage.removeItem('lauryn-luxe-booking-form');
-    }
-
-    if (!tx_ref || !storedFormData) {
-      setErrorMessage('Transaction reference or form data not found. Please try booking again.');
+    if (!tx_ref || !encodedFormData) {
+      setErrorMessage('Transaction reference or form data not found in URL. Please try booking again.');
       setStatus('failed');
       return;
     }
 
-    const formData = JSON.parse(storedFormData);
+    let formData;
+    try {
+      formData = JSON.parse(atob(encodedFormData));
+    } catch (error) {
+      setErrorMessage('Failed to parse booking data from URL. The link may be corrupted.');
+      setStatus('failed');
+      return;
+    }
 
     const verifyPaymentAndCreateBooking = async () => {
       try {
