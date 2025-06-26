@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing transaction reference or form data' }, { status: 400 });
     }
 
+    console.log('tx_ref used for payment:', tx_ref); // before PaychanguCheckout
+
     // --- Start Real-time Verification ---
     const secretKey = process.env.PAYCHANGU_SECRET_KEY;
     if (!secretKey) {
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     const verificationData = await verificationResponse.json();
     console.log('PayChangu verificationData:', verificationData); // Log the full response for debugging
+    console.log('tx_ref used for verification:', tx_ref); // in verify-payment route
 
     // Check if the transaction was successful according to PayChangu's data
     if (verificationData.status !== 'success' || verificationData.data.status !== 'successful') {
