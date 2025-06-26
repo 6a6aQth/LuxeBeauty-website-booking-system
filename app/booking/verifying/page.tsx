@@ -71,7 +71,7 @@ function VerifyingPayment() {
         setTimeout(() => {
           setShowLoader(false); // Hide loader before redirect (optional)
           router.push('/booking/confirmation');
-        }, 2000); // Show 'Appointment Confirmed' for 2 seconds
+        }, 5000); // Show 'Appointment Confirmed' for 5 seconds
 
       } catch (error: any) {
         setErrorMessage(error.message || 'An unknown error occurred during verification.');
