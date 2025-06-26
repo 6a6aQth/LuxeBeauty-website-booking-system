@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     console.log('tx_ref used for verification:', tx_ref); // in verify-payment route
 
     // Check if the transaction was successful according to PayChangu's data
-    if (verificationData.status !== 'success' || verificationData.data.status !== 'successful') {
+    if (verificationData.status !== 'success' || verificationData.data.status !== 'success') {
         return NextResponse.json({ error: 'Payment not successful according to PayChangu.' }, { status: 400 });
     }
 
