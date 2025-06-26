@@ -60,6 +60,7 @@ export function BookingForm({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(true);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -71,6 +72,8 @@ export function BookingForm({
         }
       } catch (error) {
         console.error("Failed to fetch services", error);
+      } finally {
+        setServicesLoading(false);
       }
     };
 
@@ -221,22 +224,33 @@ export function BookingForm({
                     <Select
                       onValueChange={setSelectedCategory}
                       value={selectedCategory || ""}
+                      disabled={servicesLoading}
                     >
                       <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent className="bg-white text-gray-900 border-gray-200">
-                        {categories.map((category) => (
-                          <SelectItem
-                            key={category}
-                            value={category}
-                            className="focus:bg-brand-pink/10"
-                          >
-                            {category
-                              .replace(/-/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                        {servicesLoading ? (
+                          <SelectItem value="__loading" disabled>
+                            Loading categories…
                           </SelectItem>
-                        ))}
+                        ) : categories.length === 0 ? (
+                          <SelectItem value="__empty" disabled>
+                            No categories found.
+                          </SelectItem>
+                        ) : (
+                          categories.map((category) => (
+                            <SelectItem
+                              key={category}
+                              value={category}
+                              className="focus:bg-brand-pink/10"
+                            >
+                              {category
+                                .replace(/-/g, " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
