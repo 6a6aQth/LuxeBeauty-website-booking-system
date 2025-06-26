@@ -191,12 +191,15 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
+    // @ts-ignore
     if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
       setIsPaying(true);
       setLoading(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+      
+      // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A", // <-- replace with your real live key
+        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
         tx_ref,
         amount: 1000,
         currency: "MWK",
@@ -220,25 +223,36 @@ export default function Booking() {
         callback: async (response: any) => {
           if (response.status === "successful") {
             try {
-              const bookingRes = await fetch('/api/bookings', {
+              // Securely verify the payment and create the booking on the server
+              const verificationRes = await fetch('/api/verify-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, tx_ref }),
+                body: JSON.stringify({ tx_ref: response.tx_ref, formData }),
               });
-              if (!bookingRes.ok) throw new Error('Failed to create booking');
-              const newBooking = await bookingRes.json();
+
+              if (!verificationRes.ok) {
+                const errorData = await verificationRes.json();
+                throw new Error(errorData.error || 'Payment verification failed.');
+              }
+
+              const newBooking = await verificationRes.json();
+
               const bookingDetails = {
                 ...newBooking,
-                fee: "K10,000 (Paid)",
+                fee: "K1000 (Paid)", // Adjusted amount
               };
+
               sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+              
+              // Allow loader to finish before navigating
               setTimeout(() => {
                 router.push("/booking/confirmation");
               }, 2000);
-            } catch (error) {
+
+            } catch (error: any) {
               toast({
-                title: "Booking Failed",
-                description: "Could not save your appointment. Please try again.",
+                title: "Booking Finalization Failed",
+                description: error.message || "Your payment was successful, but we failed to create your booking. Please contact support.",
                 variant: "destructive",
               });
               setIsPaying(false);
@@ -256,7 +270,11 @@ export default function Booking() {
         }
       });
     } else {
-      alert("Payment library not loaded. Please try again.");
+      toast({
+        title: "Payment Error",
+        description: "Payment library not loaded. Please refresh and try again.",
+        variant: "destructive",
+      });
       setIsPaying(false);
       setLoading(false);
     }
