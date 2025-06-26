@@ -199,14 +199,14 @@ export default function Booking() {
       setIsPaying(true);
       setLoading(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+      console.log('tx_ref used for payment:', tx_ref);
       
       const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
-      // We will append our own data parameter to the URL. PayChangu will add its own parameters like tx_ref.
       callbackUrl.searchParams.set('data', encodedFormData);
 
       // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
+        public_key: "pub-test-yP4mxJHJJkQXUSWRTT0z1lCYFFZnfxEF",
         tx_ref,
         amount: 1000,
         currency: "MWK",

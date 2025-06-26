@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
+    console.log('tx_ref used for verification:', tx_ref); // Log the tx_ref before verification
     const verificationUrl = `https://api.paychangu.com/verify-payment/${tx_ref}`;
     
     const verificationResponse = await fetch(verificationUrl, {
