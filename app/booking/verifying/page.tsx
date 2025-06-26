@@ -51,6 +51,14 @@ function VerifyingPayment() {
   }, [loaderStep, showLoader, finalStatus, router, loaderStates.length]);
 
   useEffect(() => {
+    const cancelled = searchParams.get('cancelled');
+    if (cancelled) {
+      setErrorMessage('You cancelled the payment.');
+      setLoaderStates(failStates);
+      setFinalStatus('failed');
+      setStatus('failed');
+      return;
+    }
     const tx_ref = searchParams.get('tx_ref');
     const encodedFormData = searchParams.get('data');
 

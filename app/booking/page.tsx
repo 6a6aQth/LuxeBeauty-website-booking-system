@@ -231,6 +231,11 @@ export default function Booking() {
         onclose: () => {
           setIsPaying(false);
           setLoading(false); // Hide loader if popup is closed
+          // Redirect to verifying page with a cancelled flag and form data
+          const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
+          callbackUrl.searchParams.set('cancelled', '1');
+          callbackUrl.searchParams.set('data', encodedFormData);
+          window.location.href = callbackUrl.toString();
         },
         callback: async (response: any) => {
           if (response.status === "successful") {
