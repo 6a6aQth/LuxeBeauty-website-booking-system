@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!verificationResponse.ok) {
+      // Log the detailed error from PayChangu to the server logs for debugging
+      const errorBody = await verificationResponse.json().catch(() => ({ message: 'Could not parse error response from PayChangu.' }));
+      console.error(`PayChangu verification failed! Status: ${verificationResponse.status}, Body:`, errorBody);
+      
       // Could not connect to PayChangu's server or other network issue
       return NextResponse.json({ error: 'Failed to verify transaction with payment provider.' }, { status: 502 }); // Bad Gateway
     }
