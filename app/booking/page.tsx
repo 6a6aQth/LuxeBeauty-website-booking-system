@@ -229,8 +229,9 @@ export default function Booking() {
           phone: formData.phone,
         },
         onclose: () => {
+          console.log('PayChangu onclose fired');
           setIsPaying(false);
-          setLoading(false); // Hide loader if popup is closed
+          setLoading(false);
           // Redirect to verifying page with a cancelled flag and form data
           const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
           callbackUrl.searchParams.set('cancelled', '1');
