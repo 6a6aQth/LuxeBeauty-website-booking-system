@@ -8,11 +8,16 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 
-const loadingStates = [
+const successStates = [
   { text: "Processing Payment" },
   { text: "Payment Received" },
   { text: "Generating Ticket" },
   { text: "Appointment Confirmed" },
+];
+const failStates = [
+  { text: "Processing Payment" },
+  { text: "Payment Not Received" },
+  { text: "Payment Failed" },
 ];
 
 function VerifyingPayment() {
@@ -20,14 +25,15 @@ function VerifyingPayment() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
-  const [loaderStep, setLoaderStep] = useState(0); // Start at first step
+  const [loaderStep, setLoaderStep] = useState(0);
   const [finalStatus, setFinalStatus] = useState<'success' | 'failed' | null>(null);
   const [showLoader, setShowLoader] = useState(true);
+  const [loaderStates, setLoaderStates] = useState(successStates);
 
-  // Animate loader through all steps
+  // Animate loader through the correct number of steps
   useEffect(() => {
     if (!showLoader) return;
-    if (loaderStep < loadingStates.length - 1) {
+    if (loaderStep < loaderStates.length - 1) {
       const timeout = setTimeout(() => {
         setLoaderStep((prev) => prev + 1);
       }, 1200);
@@ -42,7 +48,7 @@ function VerifyingPayment() {
         // If failed, error UI will show below
       }, 1200);
     }
-  }, [loaderStep, showLoader, finalStatus, router]);
+  }, [loaderStep, showLoader, finalStatus, router, loaderStates.length]);
 
   useEffect(() => {
     const tx_ref = searchParams.get('tx_ref');
@@ -50,6 +56,7 @@ function VerifyingPayment() {
 
     if (!tx_ref || !encodedFormData) {
       setErrorMessage('Transaction reference or form data not found in URL. Please try booking again.');
+      setLoaderStates(failStates);
       setFinalStatus('failed');
       setStatus('failed');
       return;
@@ -60,6 +67,7 @@ function VerifyingPayment() {
       formData = JSON.parse(atob(encodedFormData));
     } catch (error) {
       setErrorMessage('Failed to parse booking data from URL. The link may be corrupted.');
+      setLoaderStates(failStates);
       setFinalStatus('failed');
       setStatus('failed');
       return;
@@ -86,10 +94,12 @@ function VerifyingPayment() {
 
         // Save final details for the confirmation page
         sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+        setLoaderStates(successStates);
         setFinalStatus('success');
         setStatus('success');
       } catch (error: any) {
         setErrorMessage(error.message || 'An unknown error occurred during verification.');
+        setLoaderStates(failStates);
         setFinalStatus('failed');
         setStatus('failed');
       }
@@ -101,7 +111,7 @@ function VerifyingPayment() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
       <MultiStepLoader
-        loadingStates={loadingStates}
+        loadingStates={loaderStates}
         loading={showLoader}
         duration={1200}
         loop={false}
