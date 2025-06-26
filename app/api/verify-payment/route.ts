@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Optional but recommended: Verify the amount paid is what you expect
-    const expectedAmount = 1000; // The amount in MWK for the deposit
+    const expectedAmount = 100; // The amount in MWK for the deposit
     if (verificationData.data.amount < expectedAmount) {
         // This prevents someone from paying 1 MWK and getting a full booking
         return NextResponse.json({ error: `Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}` }, { status: 400 });
