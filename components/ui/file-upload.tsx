@@ -7,22 +7,14 @@ import { useDropzone } from "react-dropzone";
 export const FileUpload = ({
   onChange,
   uploadedFiles = [],
+  onRemove,
 }: {
   onChange?: (files: File[]) => void;
   uploadedFiles?: string[];
+  onRemove?: (idx: number) => void;
 }) => {
-  // Helper to remove a file by index
-  const handleRemove = (idx: number) => {
-    if (!uploadedFiles) return;
-    const newFiles = uploadedFiles.filter((_, i) => i !== idx);
-    // onChange expects File[], but we only have URLs here, so we need to signal removal to parent
-    // We'll call onChange with an empty array, parent should update uploadedFiles prop
-    if (onChange) onChange([]); // Parent should handle removal by index
-  };
-
   const onDrop = (acceptedFiles: File[]) => {
     if (uploadedFiles.length + acceptedFiles.length > 5) {
-      // Only allow up to 5 files
       acceptedFiles = acceptedFiles.slice(0, 5 - uploadedFiles.length);
     }
     onChange && onChange(acceptedFiles);
@@ -88,7 +80,7 @@ export const FileUpload = ({
                   type="button"
                   onClick={e => {
                     e.stopPropagation();
-                    handleRemove(i);
+                    onRemove && onRemove(i);
                   }}
                   className="absolute top-0 right-0 bg-white bg-opacity-80 rounded-full p-1 m-1 text-gray-700 hover:bg-red-100 hover:text-red-600 transition-opacity opacity-0 group-hover:opacity-100"
                   aria-label="Remove image"

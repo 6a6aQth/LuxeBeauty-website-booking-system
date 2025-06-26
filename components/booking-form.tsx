@@ -458,22 +458,8 @@ export function BookingForm({
                     <FileUpload
                       onChange={handleFileChange}
                       uploadedFiles={formData.inspirationPhotos}
+                      onRemove={handleRemoveImage}
                     />
-                    {formData.inspirationPhotos && formData.inspirationPhotos.length > 0 && (
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        {formData.inspirationPhotos.map((url: string, idx: number) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            aria-label="Remove image"
-                            className="hidden"
-                            onClick={() => handleRemoveImage(idx)}
-                          >
-                            Remove
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <Button
