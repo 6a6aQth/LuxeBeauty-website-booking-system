@@ -23,22 +23,22 @@ interface BookingDetails {
 }
 
 export default function BookingConfirmationPage() {
-  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(
-    null
-  )
-  const [isClient, setIsClient] = useState(false)
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const [allServices, setAllServices] = useState<Service[]>([]);
-  const ticketRef = useRef<HTMLDivElement>(null)
+  const ticketRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsClient(true)
+    setIsClient(true);
     try {
-      const storedBooking = sessionStorage.getItem('lauryn-luxe-booking')
+      const storedBooking = sessionStorage.getItem('lauryn-luxe-booking');
       if (storedBooking) {
-        setBookingDetails(JSON.parse(storedBooking))
+        setBookingDetails(JSON.parse(storedBooking));
+      } else {
+        setBookingDetails(null);
       }
     } catch (error) {
-      console.error('Failed to parse booking details from session storage', error)
+      setBookingDetails(null);
     }
 
     const fetchServices = async () => {
@@ -53,7 +53,7 @@ export default function BookingConfirmationPage() {
       }
     };
     fetchServices();
-  }, [])
+  }, []);
 
   const getServiceNames = (serviceIds: string[]) => {
     return serviceIds.map(id => {
@@ -116,7 +116,7 @@ export default function BookingConfirmationPage() {
   }
 
   if (!isClient) {
-    return null // Render nothing on the server
+    return null; // Render nothing on the server
   }
 
   if (!bookingDetails) {
@@ -126,13 +126,13 @@ export default function BookingConfirmationPage() {
           No Booking Found
         </h1>
         <p className="text-gray-600 mb-8">
-          We couldn't find any booking details. Please book an appointment first.
+          Please book an appointment first.
         </p>
         <PrimitiveButton asChild>
           <Link href="/booking">Go to Booking Page</Link>
         </PrimitiveButton>
       </div>
-    )
+    );
   }
 
   return (

@@ -84,6 +84,12 @@ export default function Booking() {
   const bookingFormRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Clear any previous booking data when starting a new booking
+    sessionStorage.removeItem('lauryn-luxe-booking');
+    localStorage.removeItem('lauryn-luxe-booking-form');
+  }, []);
+
+  useEffect(() => {
     if (step === 'payment') {
       setTimeout(() => {
         bookingFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
