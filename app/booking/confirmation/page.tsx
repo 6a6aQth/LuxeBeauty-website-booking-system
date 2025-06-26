@@ -122,14 +122,14 @@ export default function BookingConfirmationPage() {
   if (!bookingDetails) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 text-center p-4">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">
-          No Booking Found
+        <h1 className="text-2xl font-bold text-red-600 mb-4">
+          Payment was not successful
         </h1>
         <p className="text-gray-600 mb-8">
-          Please book an appointment first.
+          Please try booking again.
         </p>
         <PrimitiveButton asChild>
-          <Link href="/booking">Go to Booking Page</Link>
+          <Link href="/booking">Try Booking Again</Link>
         </PrimitiveButton>
       </div>
     );
