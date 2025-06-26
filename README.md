@@ -270,4 +270,4 @@ The application exposes several API endpoints built with Next.js API Routes.
 *   **Added `key` prop to `DialogContent`:** This ensures the dialog content re-mounts when the `selectedDate` changes, preventing stale state issues with time slot selection.
 
 ---
-**Note:** This documentation is a living document and may be updated as the project evolves.
+**Note:** This documentation is a living document and may be updated as the project evolves. PayCangu
