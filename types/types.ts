@@ -25,4 +25,5 @@ export interface BookingFormProps {
   setAgreedToTerms: React.Dispatch<React.SetStateAction<boolean>>;
   handlePayment: () => Promise<void>;
   setStep: React.Dispatch<React.SetStateAction<'form' | 'payment'>>;
+  loyaltyDiscountEligible?: boolean;
 } 

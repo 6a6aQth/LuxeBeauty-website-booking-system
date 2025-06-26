@@ -84,6 +84,7 @@ export default function Booking() {
   const bookingFormRef = useRef<HTMLDivElement>(null);
   const [paymentStarted, setPaymentStarted] = useState(false);
   const [paymentCancelled, setPaymentCancelled] = useState(false);
+  const [loyaltyDiscountEligible, setLoyaltyDiscountEligible] = useState(false);
 
   useEffect(() => {
     // Clear any previous booking data when starting a new booking
@@ -174,6 +175,33 @@ export default function Booking() {
     
     return fullyBlockedDates;
   }, [bookedSlots, unavailableSlots]);
+
+  // Check loyalty eligibility when phone or step changes to 'payment'
+  useEffect(() => {
+    const checkLoyalty = async () => {
+      if (step === 'payment' && formData.phone) {
+        try {
+          const res = await fetch(`/api/bookings?phone=${encodeURIComponent(formData.phone)}`);
+          if (res.ok) {
+            const bookings = await res.json();
+            const count = Array.isArray(bookings) ? bookings.length : 0;
+            if ((count + 1) % 6 === 0) {
+              setLoyaltyDiscountEligible(true);
+            } else {
+              setLoyaltyDiscountEligible(false);
+            }
+          } else {
+            setLoyaltyDiscountEligible(false);
+          }
+        } catch {
+          setLoyaltyDiscountEligible(false);
+        }
+      } else {
+        setLoyaltyDiscountEligible(false);
+      }
+    };
+    checkLoyalty();
+  }, [step, formData.phone]);
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -363,6 +391,7 @@ export default function Booking() {
           setAgreedToTerms={setAgreedToTerms}
           handlePayment={handlePayment}
           setStep={setStep}
+          loyaltyDiscountEligible={loyaltyDiscountEligible}
         />
       </div>
 

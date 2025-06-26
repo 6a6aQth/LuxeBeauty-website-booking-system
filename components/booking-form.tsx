@@ -55,6 +55,7 @@ export function BookingForm({
   setAgreedToTerms,
   handlePayment,
   setStep,
+  loyaltyDiscountEligible,
 }: BookingFormProps) {
   const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -477,6 +478,11 @@ export function BookingForm({
                 </form>
               ) : (
                 <div className="space-y-6">
+                  {loyaltyDiscountEligible && (
+                    <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-green-800 text-center font-semibold text-base mb-2">
+                      🎉 Congratulations! You qualify for a <span className="font-bold">30% loyalty discount</span> on this booking.
+                    </div>
+                  )}
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <div className="flex justify-between">
                       <span className="font-medium">Full Name:</span>
@@ -576,7 +582,7 @@ export function BookingForm({
                       disabled={isPaying || !agreedToTerms}
                       className="w-full bg-green-500 text-white hover:bg-green-600"
                     >
-                      {isPaying ? "Processing..." : "Pay K10,000 Now"}
+                      {isPaying ? "Processing..." : "Pay"}
                     </Button>
                   </div>
                 </div>

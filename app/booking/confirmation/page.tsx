@@ -20,6 +20,7 @@ interface BookingDetails {
   fee: string
   ticketId: string
   email?: string
+  discountApplied: boolean
 }
 
 export default function BookingConfirmationPage() {
@@ -156,6 +157,11 @@ export default function BookingConfirmationPage() {
               <div className="text-center mb-8">
                 <Logo />
               </div>
+              {bookingDetails.discountApplied && (
+                <div className="inline-block mb-4 px-4 py-2 rounded-full bg-green-100 text-green-800 font-semibold text-sm border border-green-300">
+                  30% Loyalty Discount Applied
+                </div>
+              )}
               <div className="space-y-4 text-center text-gray-700">
                 <p>
                   <strong>Name:</strong> {bookingDetails.name}
