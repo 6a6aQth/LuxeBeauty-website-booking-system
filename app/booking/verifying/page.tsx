@@ -97,7 +97,7 @@ function VerifyingPayment() {
         const newBooking = await verificationRes.json();
         const bookingDetails = {
           ...newBooking,
-          fee: "K1000 (Paid)", // Adjusted amount
+          fee: "K100 (Paid)", // Adjusted amount
         };
 
         // Save final details for the confirmation page
