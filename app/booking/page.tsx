@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useMemo, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -212,8 +212,7 @@ export default function Booking() {
 
       // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
-        tx_ref,
+        public_key: "pub-test-yP4mxJHJJkQXUSWRTT0z1lCYFFZnfxEF",
         amount: 1000,
         currency: "MWK",
         callback_url: callbackUrl.toString(),
