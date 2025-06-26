@@ -20,8 +20,29 @@ function VerifyingPayment() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
-  const [loaderStep, setLoaderStep] = useState(2); // Start at 'Generating Ticket'
+  const [loaderStep, setLoaderStep] = useState(0); // Start at first step
+  const [finalStatus, setFinalStatus] = useState<'success' | 'failed' | null>(null);
   const [showLoader, setShowLoader] = useState(true);
+
+  // Animate loader through all steps
+  useEffect(() => {
+    if (!showLoader) return;
+    if (loaderStep < loadingStates.length - 1) {
+      const timeout = setTimeout(() => {
+        setLoaderStep((prev) => prev + 1);
+      }, 1200);
+      return () => clearTimeout(timeout);
+    } else if (finalStatus) {
+      // Loader finished, now handle final state
+      setTimeout(() => {
+        setShowLoader(false);
+        if (finalStatus === 'success') {
+          router.push('/booking/confirmation');
+        }
+        // If failed, error UI will show below
+      }, 1200);
+    }
+  }, [loaderStep, showLoader, finalStatus, router]);
 
   useEffect(() => {
     const tx_ref = searchParams.get('tx_ref');
@@ -29,6 +50,7 @@ function VerifyingPayment() {
 
     if (!tx_ref || !encodedFormData) {
       setErrorMessage('Transaction reference or form data not found in URL. Please try booking again.');
+      setFinalStatus('failed');
       setStatus('failed');
       return;
     }
@@ -38,6 +60,7 @@ function VerifyingPayment() {
       formData = JSON.parse(atob(encodedFormData));
     } catch (error) {
       setErrorMessage('Failed to parse booking data from URL. The link may be corrupted.');
+      setFinalStatus('failed');
       setStatus('failed');
       return;
     }
@@ -63,57 +86,41 @@ function VerifyingPayment() {
 
         // Save final details for the confirmation page
         sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
-        
+        setFinalStatus('success');
         setStatus('success');
-        toast({ title: "Booking Confirmed!", description: "Your appointment has been successfully booked." });
-        
-        setLoaderStep(3); // Move to 'Appointment Confirmed'
-        setTimeout(() => {
-          setShowLoader(false); // Hide loader before redirect (optional)
-          router.push('/booking/confirmation');
-        }, 5000); // Show 'Appointment Confirmed' for 5 seconds
-
       } catch (error: any) {
         setErrorMessage(error.message || 'An unknown error occurred during verification.');
+        setFinalStatus('failed');
         setStatus('failed');
-        toast({ title: "Booking Failed", description: error.message, variant: 'destructive' });
-        setShowLoader(false); // Hide loader on error
       }
     };
 
     verifyPaymentAndCreateBooking();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
       <MultiStepLoader
         loadingStates={loadingStates}
         loading={showLoader}
-        duration={1500}
+        duration={1200}
         loop={false}
         value={loaderStep}
       />
-      {status === 'verifying' && (
-        <>
-          <Loader2 className="h-12 w-12 animate-spin text-brand-pink mb-4" />
-          <h1 className="text-2xl font-semibold text-gray-800">Verifying Your Payment...</h1>
-          <p className="text-gray-600 mt-2">Please do not refresh or close this page.</p>
-        </>
-      )}
-      {status === 'failed' && (
-        <>
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Verification Failed</h1>
-          <p className="text-gray-700 mb-6">{errorMessage}</p>
+      {/* Show nothing else while loader is animating */}
+      {!showLoader && status === 'failed' && (
+        <div className="flex flex-col items-center justify-center w-full mt-8">
+          {/* Error animation */}
+          <svg className="w-16 h-16 text-red-500 mb-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6m0-6l6 6" />
+          </svg>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Payment Not Successful</h1>
+          <p className="text-gray-700 mb-6">{errorMessage || 'Your payment could not be verified. Please try booking again.'}</p>
           <Button asChild>
             <Link href="/booking">Try Booking Again</Link>
           </Button>
-        </>
-      )}
-      {status === 'success' && (
-        <>
-          <h1 className="text-2xl font-bold text-green-600">Verification Successful!</h1>
-          <p className="text-gray-600 mt-2">Redirecting you to your booking confirmation...</p>
-        </>
+        </div>
       )}
     </div>
   );
