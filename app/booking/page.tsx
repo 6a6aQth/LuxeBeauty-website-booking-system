@@ -215,8 +215,8 @@ export default function Booking() {
 
       // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-yP4mxJHJJkQXUSWRTT0z1lCYFFZnfxEF",
-        amount: 1000,
+        public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
+        amount: 100,
         currency: "MWK",
         callback_url: callbackUrl.toString(),
         customer: {
