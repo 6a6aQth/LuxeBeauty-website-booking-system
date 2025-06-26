@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export default function VerifyingPaymentPage() {
+function VerifyingPayment() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
@@ -92,4 +92,18 @@ export default function VerifyingPaymentPage() {
       )}
     </div>
   );
+}
+
+// The main page export provides the Suspense boundary
+export default function VerifyingPaymentPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
+              <Loader2 className="h-12 w-12 animate-spin text-brand-pink mb-4" />
+              <h1 className="text-2xl font-semibold text-gray-800">Loading...</h1>
+            </div>
+        }>
+            <VerifyingPayment />
+        </Suspense>
+    )
 } 
