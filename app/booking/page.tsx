@@ -212,7 +212,7 @@ export default function Booking() {
 
       // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
+        public_key: "pub-test-yP4mxJHJJkQXUSWRTT0z1lCYFFZnfxEF",
         tx_ref,
         amount: 1000,
         currency: "MWK",
