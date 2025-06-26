@@ -191,9 +191,9 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
-    // Save form data to session storage before initiating payment
-    // This ensures we can retrieve it on the verification page after the redirect.
-    sessionStorage.setItem('lauryn-luxe-booking-form', JSON.stringify(formData));
+    // Save form data to local storage before initiating payment.
+    // This is more persistent than session storage across redirects.
+    localStorage.setItem('lauryn-luxe-booking-form', JSON.stringify(formData));
 
     // @ts-ignore
     if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {

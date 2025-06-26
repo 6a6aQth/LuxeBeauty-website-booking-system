@@ -15,7 +15,11 @@ function VerifyingPayment() {
 
   useEffect(() => {
     const tx_ref = searchParams.get('tx_ref');
-    const storedFormData = sessionStorage.getItem('lauryn-luxe-booking-form');
+    const storedFormData = localStorage.getItem('lauryn-luxe-booking-form');
+
+    if (storedFormData) {
+      localStorage.removeItem('lauryn-luxe-booking-form');
+    }
 
     if (!tx_ref || !storedFormData) {
       setErrorMessage('Transaction reference or form data not found. Please try booking again.');
@@ -47,9 +51,6 @@ function VerifyingPayment() {
         // Save final details for the confirmation page
         sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
         
-        // Clean up the temporary form data
-        sessionStorage.removeItem('lauryn-luxe-booking-form');
-
         setStatus('success');
         toast({ title: "Booking Confirmed!", description: "Your appointment has been successfully booked." });
         
