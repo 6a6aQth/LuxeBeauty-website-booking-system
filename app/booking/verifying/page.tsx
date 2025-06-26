@@ -6,12 +6,22 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+
+const loadingStates = [
+  { text: "Processing Payment" },
+  { text: "Payment Received" },
+  { text: "Generating Ticket" },
+  { text: "Appointment Confirmed" },
+];
 
 function VerifyingPayment() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loaderStep, setLoaderStep] = useState(2); // Start at 'Generating Ticket'
+  const [showLoader, setShowLoader] = useState(true);
 
   useEffect(() => {
     const tx_ref = searchParams.get('tx_ref');
@@ -57,13 +67,17 @@ function VerifyingPayment() {
         setStatus('success');
         toast({ title: "Booking Confirmed!", description: "Your appointment has been successfully booked." });
         
-        // Redirect to the final ticket page
-        router.push('/booking/confirmation');
+        setLoaderStep(3); // Move to 'Appointment Confirmed'
+        setTimeout(() => {
+          setShowLoader(false); // Hide loader before redirect (optional)
+          router.push('/booking/confirmation');
+        }, 2000); // Show 'Appointment Confirmed' for 2 seconds
 
       } catch (error: any) {
         setErrorMessage(error.message || 'An unknown error occurred during verification.');
         setStatus('failed');
         toast({ title: "Booking Failed", description: error.message, variant: 'destructive' });
+        setShowLoader(false); // Hide loader on error
       }
     };
 
@@ -72,6 +86,13 @@ function VerifyingPayment() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
+      <MultiStepLoader
+        loadingStates={loadingStates}
+        loading={showLoader}
+        duration={1500}
+        loop={false}
+        value={loaderStep}
+      />
       {status === 'verifying' && (
         <>
           <Loader2 className="h-12 w-12 animate-spin text-brand-pink mb-4" />

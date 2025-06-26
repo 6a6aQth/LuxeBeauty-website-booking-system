@@ -197,13 +197,13 @@ export default function Booking() {
   }
 
   const handlePayment = async () => {
+    setLoading(true); // Show loader immediately when Pay is clicked
     // Encode the form data to be passed safely in the URL.
     const encodedFormData = btoa(JSON.stringify(formData));
 
     // @ts-ignore
     if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
       setIsPaying(true);
-      setLoading(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
       console.log('tx_ref used for payment:', tx_ref);
       
@@ -212,11 +212,10 @@ export default function Booking() {
 
       // @ts-ignore
       window.PaychanguCheckout({
-        public_key: "pub-test-yP4mxJHJJkQXUSWRTT0z1lCYFFZnfxEF",
+        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
         tx_ref,
         amount: 1000,
         currency: "MWK",
-        // Pass the full URL with our encoded data.
         callback_url: callbackUrl.toString(),
         customer: {
           email: formData.email,
@@ -232,19 +231,55 @@ export default function Booking() {
         },
         onclose: () => {
           setIsPaying(false);
-          setLoading(false);
+          setLoading(false); // Hide loader if popup is closed
         },
-        // This JS callback might not run due to the immediate redirect.
-        // The primary verification logic is now handled on the /booking/verifying page.
         callback: async (response: any) => {
-          if (response.status !== "successful") {
+          if (response.status === "successful") {
+            try {
+              // Securely verify the payment and create the booking on the server
+              const verificationRes = await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tx_ref: response.tx_ref, formData }),
+              });
+
+              if (!verificationRes.ok) {
+                const errorData = await verificationRes.json();
+                throw new Error(errorData.error || 'Payment verification failed.');
+              }
+
+              const newBooking = await verificationRes.json();
+
+              const bookingDetails = {
+                ...newBooking,
+                fee: "K1000 (Paid)",
+              };
+
+              sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+              
+              // Allow loader to finish before navigating
+              setTimeout(() => {
+                setLoading(false); // Hide loader after success
+                router.push("/booking/confirmation");
+              }, 2000);
+
+            } catch (error: any) {
+              toast({
+                title: "Booking Finalization Failed",
+                description: error.message || "Your payment was successful, but we failed to create your booking. Please contact support.",
+                variant: "destructive",
+              });
+              setIsPaying(false);
+              setLoading(false); // Hide loader after failure
+            }
+          } else {
             toast({
               title: "Payment Failed",
               description: "Your payment was not successful. Please try again.",
               variant: "destructive",
             });
             setIsPaying(false);
-            setLoading(false);
+            setLoading(false); // Hide loader after failure
           }
         }
       });

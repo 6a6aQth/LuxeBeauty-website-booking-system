@@ -94,11 +94,13 @@ export const MultiStepLoader = ({
   loading,
   duration = 2000,
   loop = true,
+  value,
 }: {
   loadingStates: LoadingState[];
   loading?: boolean;
   duration?: number;
   loop?: boolean;
+  value?: number;
 }) => {
   const [currentState, setCurrentState] = useState(0);
 
@@ -107,6 +109,7 @@ export const MultiStepLoader = ({
       setCurrentState(0);
       return;
     }
+    if (typeof value === 'number') return; // Don't auto-advance if value is controlled externally
     const timeout = setTimeout(() => {
       setCurrentState((prevState) =>
         loop
@@ -118,7 +121,7 @@ export const MultiStepLoader = ({
     }, duration);
 
     return () => clearTimeout(timeout);
-  }, [currentState, loading, loop, loadingStates.length, duration]);
+  }, [currentState, loading, loop, loadingStates.length, duration, value]);
   return (
     <AnimatePresence mode="wait">
       {loading && (
@@ -135,7 +138,7 @@ export const MultiStepLoader = ({
           className="w-full h-full fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-2xl"
         >
           <div className="h-96  relative">
-            <LoaderCore value={currentState} loadingStates={loadingStates} />
+            <LoaderCore value={typeof value === 'number' ? value : currentState} loadingStates={loadingStates} />
           </div>
 
           <div className="bg-gradient-to-t inset-x-0 z-20 bottom-0 bg-white dark:bg-black h-full absolute [mask-image:radial-gradient(900px_at_center,transparent_30%,white)]" />
