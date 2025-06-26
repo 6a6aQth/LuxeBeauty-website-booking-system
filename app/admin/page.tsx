@@ -276,8 +276,24 @@ export default function AdminPage() {
       });
     }
 
-    // Sort the bookings by date
-    return bookingsToShow.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Sort the bookings by date and timeSlot (earliest first)
+    return bookingsToShow.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      // If dates are equal, compare timeSlot as time (e.g., '8:30 AM')
+      const parseTime = (timeStr) => {
+        // Parse '8:30 AM' to a Date object on the same day
+        const [time, modifier] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        if (modifier === 'PM' && hours !== 12) hours += 12;
+        if (modifier === 'AM' && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      };
+      return parseTime(a.timeSlot) - parseTime(b.timeSlot);
+    });
   }, [bookings, searchTerm, showAll]);
   
   const weeklyCapacity = useMemo(() => {
