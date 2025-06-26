@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // Loyalty Program Logic
     const bookingCount = await prisma.booking.count({ where: { phone: formData.phone } });
-    const isDiscountBooking = (bookingCount + 1) % 2 === 0; // TEMP: Apply discount on every 2nd booking
+    const isDiscountBooking = (bookingCount + 1) % 6 === 0; // Apply discount on every 6th booking
 
     // If verification is successful, proceed to create the booking
     const ticketId = `LLB-${formData.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
