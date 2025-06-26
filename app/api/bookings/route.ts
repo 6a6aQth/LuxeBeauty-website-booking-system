@@ -16,38 +16,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { name, phone, email, services, date, timeSlot, discountApplied, inspirationPhotos, notes } = body;
-
-    if (!name || !phone || !services || !date || !timeSlot) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    
-    // Loyalty Program Logic
-    const bookingCount = await prisma.booking.count({ where: { phone } });
-    const isDiscountBooking = (bookingCount + 1) % 6 === 0;
-    
-    const ticketId = `LLB-${date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newBooking = await prisma.booking.create({
-      data: {
-        name,
-        phone,
-        email,
-        services,
-        date,
-        timeSlot,
-        ticketId,
-        discountApplied: discountApplied || isDiscountBooking,
-        inspirationPhotos: inspirationPhotos || [],
-        notes: notes || null,
-      },
-    });
-
-    return NextResponse.json(newBooking, { status: 201 });
-  } catch (error) {
-    console.error('Failed to create booking:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
+  // Booking creation is now handled only after payment verification.
+  // This endpoint is disabled to prevent duplicate or unpaid bookings.
+  return NextResponse.json({ error: 'Booking creation is disabled. Use payment flow.' }, { status: 403 });
 } 
