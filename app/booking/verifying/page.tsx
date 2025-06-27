@@ -129,10 +129,11 @@ function VerifyingPayment() {
       {!showLoader && status === 'failed' && (
         <div className="flex flex-col items-center justify-center w-full mt-8">
           {/* Error animation */}
-          <svg className="w-16 h-16 text-red-500 mb-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l-6 6m0-6l6 6" />
-          </svg>
+          <img
+            src="/error.gif"
+            alt="Error animation"
+            style={{ width: 120, height: 120, margin: '0 auto' }}
+          />
           <h1 className="text-2xl font-bold text-red-600 mb-4">Payment Not Successful</h1>
           <p className="text-gray-700 mb-6">{errorMessage || 'Your payment could not be verified. Please try booking again.'}</p>
           <Button asChild>
