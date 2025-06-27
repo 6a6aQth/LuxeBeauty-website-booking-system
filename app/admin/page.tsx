@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { format, parseISO, isValid, startOfWeek, endOfWeek, isWithinInterval, addDays, isToday } from 'date-fns'
 import { DayPicker } from 'react-day-picker'
@@ -122,6 +122,7 @@ export default function AdminPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isClient, setIsClient] = useState(false)
   const isMobile = useIsMobile();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => setIsClient(true), [])
 
@@ -284,7 +285,7 @@ export default function AdminPage() {
         return dateA.getTime() - dateB.getTime();
       }
       // If dates are equal, compare timeSlot as time (e.g., '8:30 AM')
-      const parseTime = (timeStr) => {
+      const parseTime = (timeStr: string) => {
         // Parse '8:30 AM' to a Date object on the same day
         const [time, modifier] = timeStr.split(' ');
         let [hours, minutes] = time.split(':').map(Number);
@@ -766,14 +767,50 @@ export default function AdminPage() {
               </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 border rounded-lg">
-                <FileUpload onChange={(files) => setPriceListFile(files[0])} />
-                    </div>
-              <Button onClick={handleSavePriceList} disabled={!priceListFile || isSavingPriceList} className="w-full bg-black text-white rounded-lg hover:bg-black/80 transition-colors">
-                  {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
-                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    if (e.target.files && e.target.files[0]) {
+                      setPriceListFile(e.target.files[0]);
+                    }
+                  }}
+                  disabled={isSavingPriceList}
+                />
+                {priceListFile && (
+                  <div className="mt-4 flex flex-col items-center">
+                    <img
+                      src={URL.createObjectURL(priceListFile)}
+                      alt="Selected price list preview"
+                      className="w-40 h-40 object-contain rounded border border-gray-200 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      className="mt-2 text-xs text-red-500 hover:underline"
+                      onClick={() => {
+                        setPriceListFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      disabled={isSavingPriceList}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleSavePriceList} disabled={!priceListFile || isSavingPriceList} className="w-full bg-black text-white rounded-lg hover:bg-black/80 transition-colors flex items-center justify-center gap-2">
+                {isSavingPriceList && (
+                  <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
+                )}
+                {isSavingPriceList ? 'Uploading...' : 'Upload New Price List'}
+              </Button>
               {priceListUrl && <a href={priceListUrl} target="_blank" rel="noopener noreferrer" className="block text-center text-sm text-brand-pink hover:underline">View Current Price List</a>}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
 
           <Card className="rounded-2xl shadow-soft">
               <CardHeader>
