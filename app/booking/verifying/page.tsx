@@ -127,14 +127,17 @@ function VerifyingPayment() {
       />
       {/* Show nothing else while loader is animating */}
       {!showLoader && status === 'failed' && (
-        <div className="flex flex-col items-center justify-center w-full mt-8">
+        <div className="flex flex-col items-center justify-center w-full mt-4">
           {/* Error animation */}
           <img
             src="/error.gif"
             alt="Error animation"
-            style={{ width: 120, height: 120, margin: '0 auto' }}
+            style={{ width: 180, height: 180, margin: '0 auto' }}
+            className="mb-2"
           />
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Payment Not Successful</h1>
+          <h1 className="text-2xl font-bold mb-4" style={{ color: '#E11D48' }}>
+            Payment Not Successful
+          </h1>
           <p className="text-gray-700 mb-6">{errorMessage || 'Your payment could not be verified. Please try booking again.'}</p>
           <Button asChild>
             <Link href="/booking">Try Booking Again</Link>
