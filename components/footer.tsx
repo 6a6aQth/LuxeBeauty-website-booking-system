@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Instagram, Facebook, Phone, Mail, MapPin, MapPinIcon, PhoneIcon, MailIcon } from "lucide-react"
 import Logo from "@/components/logo"
 import { TiktokIcon } from "@/components/tiktok-icon"
+import { LinkPreview } from "@/components/ui/link-preview"
 
 export default function Footer() {
   const address = "Lauryn Luxe Beauty Studio, Blantyre, Malawi";
@@ -75,6 +76,17 @@ export default function Footer() {
         </div>
         <div className="text-center text-gray-500 mt-10 pt-6 border-t border-gray-800">
           <p>&copy; {new Date().getFullYear()} Lauryn Luxe Beauty Studio. All Rights Reserved.</p>
+          <p className="mt-2 text-sm">
+            Powered By
+          </p>
+          <LinkPreview
+            url="https://www.midascreed.com/"
+            imageSrc="/LinkPreview.png"
+            isStatic
+            className="text-blue-500 hover:text-blue-400 font-medium mt-1"
+          >
+            MidasCreed
+          </LinkPreview>
         </div>
       </div>
     </footer>
