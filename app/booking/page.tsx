@@ -62,6 +62,24 @@ interface Booking {
   timeSlot: string;
 }
 
+async function verifyPaymentWithRetry(tx_ref: string, formData: any, retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch('/api/verify-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tx_ref, formData }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === 'success' || data.status === 'paid' || data.success) {
+        return data;
+      }
+    }
+    await new Promise(r => setTimeout(r, delay));
+  }
+  throw new Error('Payment verification failed after multiple attempts.');
+}
+
 export default function Booking() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -227,20 +245,13 @@ export default function Booking() {
 
   const handlePayment = async () => {
     setPaymentStarted(true);
-    setLoading(true); // Show loader immediately when Pay is clicked
-    // Encode the form data to be passed safely in the URL.
+    setLoading(true);
     const encodedFormData = btoa(JSON.stringify(formData));
-
-    // @ts-ignore
     if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
       setIsPaying(true);
       const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
-      console.log('tx_ref used for payment:', tx_ref);
-      
       const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
       callbackUrl.searchParams.set('data', encodedFormData);
-
-      // @ts-ignore
       window.PaychanguCheckout({
         public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
         amount: 10000,
@@ -260,39 +271,23 @@ export default function Booking() {
         },
         onclose: () => {
           setIsPaying(false);
-          setLoading(false); // Hide loader if popup is closed
-          setPaymentCancelled(true); // Show cancellation modal
+          setLoading(false);
+          setPaymentCancelled(true);
         },
         callback: async (response: any) => {
           if (response.status === "successful") {
             try {
-              // Securely verify the payment and create the booking on the server
-              const verificationRes = await fetch('/api/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tx_ref: response.tx_ref, formData }),
-              });
-
-              if (!verificationRes.ok) {
-                const errorData = await verificationRes.json();
-                throw new Error(errorData.error || 'Payment verification failed.');
-              }
-
-              const newBooking = await verificationRes.json();
-
+              // Use retry logic for verification
+              const newBooking = await verifyPaymentWithRetry(response.tx_ref, formData);
               const bookingDetails = {
                 ...newBooking,
                 fee: "K1000 (Paid)",
               };
-
               sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
-              
-              // Allow loader to finish before navigating
               setTimeout(() => {
-                setLoading(false); // Hide loader after success
+                setLoading(false);
                 router.push("/booking/confirmation");
               }, 2000);
-
             } catch (error: any) {
               toast({
                 title: "Booking Finalization Failed",
@@ -300,7 +295,7 @@ export default function Booking() {
                 variant: "destructive",
               });
               setIsPaying(false);
-              setLoading(false); // Hide loader after failure
+              setLoading(false);
             }
           } else {
             toast({
@@ -309,7 +304,7 @@ export default function Booking() {
               variant: "destructive",
             });
             setIsPaying(false);
-            setLoading(false); // Hide loader after failure
+            setLoading(false);
           }
         }
       });
