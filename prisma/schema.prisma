@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,24 +8,24 @@ datasource db {
 }
 
 model Booking {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String
-  email     String?
-  date      String // Storing as yyyy-MM-dd string
-  timeSlot  String
-  services  String[]
-  notes     String?
-  ticketId  String   @unique
-  discountApplied  Boolean  @default(false)
+  id                String   @id @default(cuid())
+  name              String
+  phone             String
+  email             String?
+  date              String
+  timeSlot          String
+  services          String[]
+  notes             String?
+  ticketId          String   @unique
+  discountApplied   Boolean  @default(false)
   inspirationPhotos String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model UnavailableDate {
   id        String   @id @default(cuid())
-  date      String   @unique // Storing as yyyy-MM-dd string
+  date      String   @unique
   timeSlots String[]
 }
 
@@ -42,14 +39,14 @@ model Service {
   id          String   @id @default(cuid())
   name        String
   description String?
-  duration    Int // Duration in minutes
-  category    String // e.g., 'manicure', 'pedicure'
-  isAvailable Boolean  @default(true)
+  duration    Int
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  isAvailable Boolean  @default(true)
 }
 
 model SiteSettings {
   id           String @id @default(cuid())
   priceListUrl String
-} 
+}

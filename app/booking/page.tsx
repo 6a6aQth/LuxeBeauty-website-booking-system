@@ -281,7 +281,7 @@ export default function Booking() {
               const newBooking = await verifyPaymentWithRetry(response.tx_ref, formData);
               const bookingDetails = {
                 ...newBooking,
-                fee: "K1000 (Paid)",
+                fee: "K10000 (Paid)",
               };
               sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
               setTimeout(() => {
