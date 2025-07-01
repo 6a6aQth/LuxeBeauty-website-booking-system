@@ -229,6 +229,7 @@ export function BookingForm({
                     name="email"
                     type="email"
                     placeholder="Email Address"
+                    required
                     value={formData.email}
                     onChange={handleChange}
                     className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"

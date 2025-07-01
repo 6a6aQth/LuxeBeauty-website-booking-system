@@ -215,10 +215,10 @@ export default function Booking() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.date || !formData.name || !formData.phone || formData.services.length === 0 || !formData.timeSlot) {
+    if (!formData.date || !formData.name || !formData.phone || !formData.email || formData.services.length === 0 || !formData.timeSlot) {
       toast({
         title: "Missing Information",
-        description: "Please fill out all required fields, including name, phone, services, date, and a time slot.",
+        description: "Please fill out all required fields, including name, phone, email, services, date, and a time slot.",
         variant: "destructive",
       })
       return
