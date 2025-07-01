@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/page-header"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { FileUpload } from "@/components/ui/file-upload"
 import { BookingForm } from "@/components/booking-form"
+import useSWR from 'swr';
 
 declare global {
   interface Window {
@@ -78,8 +79,6 @@ export default function Booking() {
   const [step, setStep] = useState<'form' | 'payment'>('form')
   const [isPaying, setIsPaying] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [unavailableSlots, setUnavailableSlots] = useState<Record<string, string[]>>({})
-  const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false)
   const bookingFormRef = useRef<HTMLDivElement>(null);
   const [paymentStarted, setPaymentStarted] = useState(false);
@@ -100,44 +99,27 @@ export default function Booking() {
     }
   }, [step]);
 
-  useEffect(() => {
-    const fetchBookingData = async () => {
-      try {
-        const [unavailableRes, bookingsRes] = await Promise.all([
-          fetch('/api/unavailable-dates'),
-          fetch('/api/bookings')
-        ]);
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: unavailableDatesData = [] } = useSWR('/api/unavailable-dates', fetcher, { refreshInterval: 1000 });
+  const { data: bookingsData = [] } = useSWR('/api/bookings', fetcher, { refreshInterval: 1000 });
+  const { data: latestServices = [] } = useSWR('/api/services', fetcher, { refreshInterval: 0 });
 
-        if (unavailableRes.ok) {
-          const unavailableData: { date: string; timeSlots: string[] }[] = await unavailableRes.json();
-          const transformedUnavailableSlots: Record<string, string[]> = {};
-          unavailableData.forEach(item => {
-            transformedUnavailableSlots[item.date] = item.timeSlots;
-          });
-          setUnavailableSlots(transformedUnavailableSlots);
-        } else {
-          console.error("Failed to fetch unavailable dates");
-        }
+  const unavailableSlots = useMemo(() => {
+    const transformed: Record<string, string[]> = {};
+    unavailableDatesData.forEach((item: any) => {
+      transformed[item.date] = item.timeSlots;
+    });
+    return transformed;
+  }, [unavailableDatesData]);
 
-        if (bookingsRes.ok) {
-          const bookingsData: Booking[] = await bookingsRes.json();
-          const slots: Record<string, string[]> = {};
-          bookingsData.forEach(booking => {
-            if (!slots[booking.date]) {
-              slots[booking.date] = [];
-            }
-            slots[booking.date].push(booking.timeSlot);
-          });
-          setBookedSlots(slots);
-        } else {
-          console.error("Failed to fetch bookings data");
-        }
-      } catch (error) {
-        console.error("Failed to fetch initial booking data:", error);
-      }
-    };
-    fetchBookingData();
-  }, [])
+  const bookedSlots = useMemo(() => {
+    const slots: Record<string, string[]> = {};
+    bookingsData.forEach((booking: any) => {
+      if (!slots[booking.date]) slots[booking.date] = [];
+      slots[booking.date].push(booking.timeSlot);
+    });
+    return slots;
+  }, [bookingsData]);
 
   const availableSlotsForSelectedDate = useMemo(() => {
     if (!date) return [];
@@ -147,9 +129,12 @@ export default function Booking() {
   const allUnavailableSlotsForDate = useMemo(() => {
     if (!date) return [];
     const dateStr = format(date, "yyyy-MM-dd");
+    console.log('DEBUG date:', date);
+    console.log('DEBUG dateStr:', dateStr);
+    console.log('DEBUG unavailableSlots[dateStr]:', unavailableSlots[dateStr]);
     const bSlots = bookedSlots[dateStr] || [];
     const uSlots = unavailableSlots[dateStr] || [];
-    const combined = [...new Set([...bSlots, ...uSlots])]; // Use Set to remove duplicates
+    const combined = [...new Set([...bSlots, ...uSlots])];
     return combined;
   }, [date, bookedSlots, unavailableSlots]);
 
@@ -213,18 +198,32 @@ export default function Booking() {
     setFormData((prev) => ({ ...prev, date: dateStr, timeSlot: "" })); // Reset timeslot
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!formData.date || !formData.name || !formData.phone || !formData.email || formData.services.length === 0 || !formData.timeSlot) {
       toast({
         title: "Missing Information",
         description: "Please fill out all required fields, including name, phone, email, services, date, and a time slot.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-    setStep('payment')
-  }
+    // Real-time verification: fetch latest services and check availability
+    const res = await fetch('/api/services');
+    const services = await res.json();
+    const unavailable = formData.services.filter(
+      (id: string) => !services.some((s: any) => s.id === id && s.isAvailable)
+    );
+    if (unavailable.length > 0) {
+      toast({
+        title: 'Service Unavailable',
+        description: 'One or more of your selected services became unavailable. Please update your selection.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setStep('payment');
+  };
 
   const handlePayment = async () => {
     setPaymentStarted(true);
@@ -361,6 +360,11 @@ export default function Booking() {
       });
     }
   };
+
+  // Add debug logs before rendering BookingForm
+  console.log('DEBUG allUnavailableSlotsForDate:', allUnavailableSlotsForDate);
+  console.log('DEBUG bookedSlots:', bookedSlots);
+  console.log('DEBUG unavailableSlots:', unavailableSlots);
 
   return (
     <div>

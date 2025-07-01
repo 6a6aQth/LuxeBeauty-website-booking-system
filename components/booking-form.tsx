@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -36,6 +36,8 @@ import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StudioPoliciesContent } from "@/components/studio-policies";
+import useSWR from 'swr';
+import { toast } from '@/hooks/use-toast';
 
 export function BookingForm({
   formData,
@@ -57,30 +59,79 @@ export function BookingForm({
   setStep,
   loyaltyDiscountEligible,
 }: BookingFormProps) {
-  const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [servicesLoading, setServicesLoading] = useState(true);
   const [fileUploading, setFileUploading] = useState(false);
+  const [clearedTimeSlot, setClearedTimeSlot] = useState(false);
+
+  // SWR fetcher
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: services = [], isLoading: servicesLoading } = useSWR<Service[]>('/api/services', fetcher, { refreshInterval: 1000 });
+
+  // Prevent running on first render for services
+  const isFirstServices = useRef(true);
+  const prevServices = useRef(formData.services);
+  useEffect(() => {
+    if (isFirstServices.current) {
+      isFirstServices.current = false;
+      prevServices.current = formData.services;
+      return;
+    }
+    if (!services || services.length === 0) return;
+    setFormData((prev: any) => {
+      const stillAvailable = prev.services.filter((id: string) =>
+        services.some((s) => s.id === id && s.isAvailable)
+      );
+      // Only show toast if the change was not user-initiated
+      if (
+        stillAvailable.length !== prev.services.length &&
+        prevServices.current.length === prev.services.length
+      ) {
+        toast({
+          title: 'Service(s) Unavailable',
+          description: 'Some of the services you selected are no longer available. Please review your selection.',
+          variant: 'destructive',
+        });
+      }
+      prevServices.current = stillAvailable;
+      return { ...prev, services: stillAvailable };
+    });
+  }, [services]);
+
+  // Robust unavailableSlots effect for timeSlot
+  const isFirstSlots = useRef(true);
+  const prevTimeSlot = useRef(formData.timeSlot);
+  useEffect(() => {
+    if (isFirstSlots.current) {
+      isFirstSlots.current = false;
+      prevTimeSlot.current = formData.timeSlot;
+      return;
+    }
+    setFormData((prev: any) => {
+      if (
+        prev.timeSlot &&
+        unavailableSlots.includes(prev.timeSlot)
+      ) {
+        setClearedTimeSlot(true); // trigger toast in another effect
+        prevTimeSlot.current = '';
+        return { ...prev, timeSlot: '' };
+      }
+      prevTimeSlot.current = prev.timeSlot;
+      return prev;
+    });
+  }, [unavailableSlots, formData.timeSlot]);
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const response = await fetch("/api/services");
-        if (response.ok) {
-          const data = await response.json();
-          setServices(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch services", error);
-      } finally {
-        setServicesLoading(false);
-      }
-    };
-
-    fetchServices();
-  }, []);
+    if (clearedTimeSlot) {
+      toast({
+        title: 'Time Slot Unavailable',
+        description: 'The time slot you selected is no longer available. Please choose another time.',
+        variant: 'destructive',
+      });
+      setClearedTimeSlot(false);
+    }
+  }, [clearedTimeSlot]);
 
   useEffect(() => {
     if (step === "payment" && !document.getElementById('paychangu-js')) {

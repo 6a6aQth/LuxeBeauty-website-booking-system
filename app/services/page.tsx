@@ -1,34 +1,28 @@
+'use client'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { AnimatedSection } from "@/components/ui/animated-section"
-import prisma from "@/lib/prisma"
-import type { Service } from "@prisma/client"
 import { PageHeader } from "@/components/page-header"
 import { ServicesList } from "@/components/services-list"
+import useSWR from 'swr';
+import type { Service } from '@prisma/client';
+import React from 'react';
 
-export const dynamic = 'force-dynamic';
+export default function ServicesPage() {
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: services = [], isLoading } = useSWR<Service[]>('/api/services', fetcher, { refreshInterval: 2000 });
 
-async function getGroupedServices() {
-  const services = await prisma.service.findMany({
-    orderBy: {
-      createdAt: 'asc',
-    },
-  });
-
-  const grouped = services.reduce((acc: Record<string, Service[]>, service: Service) => {
-    const { category } = service;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(service);
-    return acc;
-  }, {} as Record<string, Service[]>);
-
-  return grouped;
-}
-
-export default async function ServicesPage() {
-  const groupedServices = await getGroupedServices();
+  // Group services by category
+  const groupedServices = React.useMemo(() => {
+    return (services as Service[]).reduce((acc: Record<string, Service[]>, service: Service) => {
+      const { category } = service;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(service);
+      return acc;
+    }, {} as Record<string, Service[]>);
+  }, [services]);
 
   return (
     <div>
