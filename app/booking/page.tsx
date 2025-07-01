@@ -254,7 +254,7 @@ export default function Booking() {
       callbackUrl.searchParams.set('data', encodedFormData);
       window.PaychanguCheckout({
         public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
-        amount: 10000,
+        amount: 100,
         currency: "MWK",
         callback_url: callbackUrl.toString(),
         customer: {
