@@ -60,10 +60,12 @@ function VerifyingPayment() {
       return;
     }
     const tx_ref = searchParams.get('tx_ref');
-    const encodedFormData = searchParams.get('data');
 
-    if (!tx_ref || !encodedFormData) {
-      setErrorMessage('Transaction reference or form data not found in URL. Please try booking again.');
+    // Retrieve formData from sessionStorage
+    const storedFormData = sessionStorage.getItem('lauryn-luxe-booking-form');
+
+    if (!tx_ref || !storedFormData) {
+      setErrorMessage('Transaction reference or booking data not found. Please try booking again.');
       setLoaderStates(failStates);
       setFinalStatus('failed');
       setStatus('failed');
@@ -72,9 +74,9 @@ function VerifyingPayment() {
 
     let formData;
     try {
-      formData = JSON.parse(atob(encodedFormData));
+      formData = JSON.parse(storedFormData);
     } catch (error) {
-      setErrorMessage('Failed to parse booking data from URL. The link may be corrupted.');
+      setErrorMessage('Failed to parse stored booking data. Please try booking again.');
       setLoaderStates(failStates);
       setFinalStatus('failed');
       setStatus('failed');

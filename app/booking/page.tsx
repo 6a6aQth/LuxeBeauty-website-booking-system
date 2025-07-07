@@ -248,6 +248,9 @@ export default function Booking() {
     setLoading(true);
     setIsPaying(true); // Indicate payment process has started
 
+    // Save formData to sessionStorage before redirecting to Paychangu
+    sessionStorage.setItem('lauryn-luxe-booking-form', JSON.stringify(formData));
+
     try {
       const response = await fetch('/api/paychangu-checkout', {
         method: 'POST',
@@ -259,7 +262,7 @@ export default function Booking() {
           loyaltyDiscountEligible,
           // The amount should ideally be calculated on the server-side for security
           // but for now, we'll pass the hardcoded deposit amount
-          amount: 10000,
+          amount: 100,
           callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`, // Your server's verification URL
           return_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/status`, // URL for failed/cancelled payments
         }),
@@ -269,7 +272,7 @@ export default function Booking() {
 
       if (response.ok && data.checkout_url) {
         window.location.href = data.checkout_url; // Redirect to Paychangu checkout page
-      } else {
+    } else {
         throw new Error(data.message || 'Failed to initiate payment.');
       }
     } catch (error: any) {
