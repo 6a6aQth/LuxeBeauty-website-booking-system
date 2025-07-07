@@ -253,7 +253,7 @@ export default function Booking() {
       const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
       callbackUrl.searchParams.set('data', encodedFormData);
       window.PaychanguCheckout({
-        public_key: "pub-test-r4lwU4hye3aCHaDzhgDoFItD9n5N9X1A",
+        public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
         amount: 10000,
         currency: "MWK",
         callback_url: callbackUrl.toString(),
