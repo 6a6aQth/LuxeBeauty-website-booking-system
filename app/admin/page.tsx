@@ -123,6 +123,7 @@ export default function AdminPage() {
   const [isClient, setIsClient] = useState(false)
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDeletingBooking, setIsDeletingBooking] = useState<Booking | null>(null);
 
   useEffect(() => setIsClient(true), [])
 
@@ -514,6 +515,35 @@ export default function AdminPage() {
     return services.filter((service) => service.category === categoryFilter)
   }, [services, categoryFilter])
 
+  const handleOpenBookingDetails = (booking: Booking) => {
+    // Implement the logic to open booking details
+    console.log("Opening booking details for:", booking);
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!isDeletingBooking) return;
+
+    try {
+      const response = await fetch(`/api/bookings/${isDeletingBooking.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete booking');
+      }
+
+      toast({ title: 'Success', description: 'Booking has been deleted.' });
+      setIsDeletingBooking(null);
+      fetchAdminData();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Could not delete booking.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (!isClient) {
     return null; // Render nothing on the server/first-client render
   }
@@ -570,6 +600,22 @@ export default function AdminPage() {
           <Card className="rounded-2xl shadow-soft overflow-hidden">
             <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><Briefcase/> Upcoming Bookings</CardTitle>
+              <div className="flex items-center space-x-2 mb-4">
+                <Button 
+                  variant={view === 'all' ? 'default' : 'outline'}
+                  onClick={() => setView('all')}
+                  className={view === 'all' ? 'bg-brand-pink text-white hover:bg-brand-pink/90' : 'text-gray-700 hover:bg-gray-100'}
+                >
+                  All Bookings
+                </Button>
+                <Button 
+                  variant={view === 'upcoming' ? 'default' : 'outline'}
+                  onClick={() => setView('upcoming')}
+                  className={view === 'upcoming' ? 'bg-brand-pink text-white hover:bg-brand-pink/90' : 'text-gray-700 hover:bg-gray-100'}
+                >
+                  Upcoming Bookings
+                </Button>
+              </div>
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input 
@@ -632,6 +678,22 @@ export default function AdminPage() {
                       </div>
                       <div className="pt-2 border-t border-gray-200">
                         <p className="text-xs text-gray-500">Ticket ID: {booking.ticketId}</p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          className="flex-1 rounded-lg border border-gray-300 text-gray-700 hover:text-brand-pink hover:border-brand-pink transition-colors"
+                          onClick={() => handleOpenBookingDetails(booking)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" /> Edit Details
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="flex-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                          onClick={() => setIsDeletingBooking(booking)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete Booking
+                        </Button>
                       </div>
                     </div>
                   )) : <p className="text-center text-gray-500 py-8">No upcoming bookings.</p>}
@@ -849,34 +911,34 @@ export default function AdminPage() {
               </div>
           )}
 
-          <ScrollArea className="max-h-[50vh]">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-4 pr-4">
-              {allTimeSlots.map(slot => {
+          <div className="space-y-3">
+            <Label className="text-base font-medium text-gray-900">Unavailable Time Slots</Label>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-2">
+              {allTimeSlots.map((slot) => {
                 const isBooked = bookedTimeSlots.includes(slot);
+                const isManagedUnavailable = managedSlots.includes(slot);
                 return (
-                  <div key={slot} className="flex items-center">
+                  <div key={slot} className="flex items-center space-x-2">
                     <Checkbox
                       id={`slot-${slot}`}
-                      checked={managedSlots.includes(slot)}
-                      disabled={isBooked}
-                      onCheckedChange={() => {
-                        if (isBooked) return;
-                        setManagedSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]);
+                      checked={isManagedUnavailable}
+                      onCheckedChange={(checked) => {
+                        setManagedSlots(prev =>
+                          checked ? [...prev, slot] : prev.filter(s => s !== slot)
+                        );
                       }}
+                      disabled={isBooked} // Disable if already booked
                     />
-                    <Label htmlFor={`slot-${slot}`} className={cn("ml-2 text-sm font-medium text-gray-900", isBooked ? 'line-through text-gray-400' : '')}>
+                    <Label htmlFor={`slot-${slot}`} className={`text-sm ${isBooked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                       {formatTime(slot)}
                     </Label>
-                    {isBooked && (
-                      <Badge variant="destructive" className="ml-auto text-xs py-0.5 px-2 rounded-full">Booked</Badge>
-                    )}
                   </div>
                 );
               })}
             </div>
-          </ScrollArea>
-
+          </div>
           <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveAvailability} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
@@ -925,6 +987,19 @@ export default function AdminPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsDeletingService(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteService} className="bg-red-500 text-white rounded-lg hover:bg-red-600">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!isDeletingBooking} onOpenChange={() => setIsDeletingBooking(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Are you sure?</DialogTitle>
+            <DialogDescription>This action cannot be undone. This will permanently delete the booking for {isDeletingBooking?.name} on {isDeletingBooking?.date} at {isDeletingBooking?.timeSlot}.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDeletingBooking(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteBooking} className="bg-red-500 text-white rounded-lg hover:bg-red-600">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
