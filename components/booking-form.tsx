@@ -39,14 +39,6 @@ import { StudioPoliciesContent } from "@/components/studio-policies";
 import useSWR from 'swr';
 import { toast } from '@/hooks/use-toast';
 
-// Add global declaration for jQuery
-declare global {
-  interface Window {
-    $?: any;
-    jQuery?: any;
-  }
-}
-
 export function BookingForm({
   formData,
   setFormData,
@@ -140,35 +132,6 @@ export function BookingForm({
       setClearedTimeSlot(false);
     }
   }, [clearedTimeSlot]);
-
-  useEffect(() => {
-    if (step === "payment" && !document.getElementById('paychangu-js')) {
-      // Inject jQuery first if not already present
-      if (!window.$ && !document.getElementById('jquery-cdn')) {
-        const jqueryScript = document.createElement('script');
-        jqueryScript.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
-        jqueryScript.id = 'jquery-cdn';
-        jqueryScript.async = true;
-        document.body.appendChild(jqueryScript);
-
-        // Wait for jQuery to load, then load Paychangu
-        jqueryScript.onload = () => {
-          const script = document.createElement('script');
-          script.src = 'https://in.paychangu.com/js/popup.js';
-          script.id = 'paychangu-js';
-          script.async = true;
-          document.body.appendChild(script);
-        };
-      } else {
-        // jQuery already present, just load Paychangu
-        const script = document.createElement('script');
-        script.src = 'https://in.paychangu.com/js/popup.js';
-        script.id = 'paychangu-js';
-        script.async = true;
-        document.body.appendChild(script);
-      }
-    }
-  }, [step]);
 
   const categories = React.useMemo(() => {
     if (services.length === 0) return [];

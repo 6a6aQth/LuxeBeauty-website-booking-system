@@ -246,76 +246,43 @@ export default function Booking() {
   const handlePayment = async () => {
     setPaymentStarted(true);
     setLoading(true);
-    const encodedFormData = btoa(JSON.stringify(formData));
-    if (typeof window !== 'undefined' && typeof window.PaychanguCheckout === 'function') {
-      setIsPaying(true);
-      const tx_ref = 'LLB-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
-      const callbackUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`);
-      callbackUrl.searchParams.set('data', encodedFormData);
-      window.PaychanguCheckout({
-        public_key: "pub-live-AqcX7rfFKPLXnFycvVrSAX1AaBWcb3OV",
-        amount: 10000,
-        currency: "MWK",
-        callback_url: callbackUrl.toString(),
-        customer: {
-          email: formData.email,
-          first_name: formData.name.split(' ')[0] || formData.name,
-          last_name: formData.name.split(' ').slice(1).join(' ') || formData.name,
+    setIsPaying(true); // Indicate payment process has started
+
+    try {
+      const response = await fetch('/api/paychangu-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        customization: {
-          title: "Lauryn Luxe Booking",
-          description: "Booking deposit for Lauryn Luxe Beauty Studio",
-        },
-        meta: {
-          phone: formData.phone,
-        },
-        onclose: () => {
-          setIsPaying(false);
-          setLoading(false);
-          setPaymentCancelled(true);
-        },
-        callback: async (response: any) => {
-          if (response.status === "successful") {
-            try {
-              // Use retry logic for verification
-              const newBooking = await verifyPaymentWithRetry(response.tx_ref, formData);
-              const bookingDetails = {
-                ...newBooking,
-                fee: "K10,000 (Paid)",
-              };
-              sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
-              setTimeout(() => {
-                setLoading(false);
-                router.push("/booking/confirmation");
-              }, 2000);
-            } catch (error: any) {
-              toast({
-                title: "Booking Finalization Failed",
-                description: error.message || "Your payment was successful, but we failed to create your booking. Please contact support.",
-                variant: "destructive",
-              });
-              setIsPaying(false);
-              setLoading(false);
-            }
-          } else {
-            toast({
-              title: "Payment Failed",
-              description: "Your payment was not successful. Please try again.",
-              variant: "destructive",
-            });
-            setIsPaying(false);
-            setLoading(false);
-          }
-        }
+        body: JSON.stringify({
+          formData,
+          loyaltyDiscountEligible,
+          // The amount should ideally be calculated on the server-side for security
+          // but for now, we'll pass the hardcoded deposit amount
+          amount: 10000,
+          callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`, // Your server's verification URL
+          return_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/status`, // URL for failed/cancelled payments
+        }),
       });
-    } else {
+
+      const data = await response.json();
+
+      if (response.ok && data.checkout_url) {
+        window.location.href = data.checkout_url; // Redirect to Paychangu checkout page
+      } else {
+        throw new Error(data.message || 'Failed to initiate payment.');
+      }
+    } catch (error: any) {
+      console.error("Payment initiation failed:", error);
       toast({
         title: "Payment Error",
-        description: "Payment library not loaded. Please refresh and try again.",
+        description: error.message || "Could not initiate payment. Please try again.",
         variant: "destructive",
       });
-      setIsPaying(false);
+      setPaymentStarted(false); // Reset payment state
       setLoading(false);
+      setIsPaying(false);
+      // setPaymentCancelled(true); // You might want to explicitly set this if there's a specific UI for cancelled payments
     }
   };
 
