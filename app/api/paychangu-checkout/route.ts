@@ -27,9 +27,14 @@ export async function POST(req: Request) {
         description: "Booking deposit for Lauryn Luxe Beauty Studio",
       },
       meta: {
+        name: formData.name,
         phone: formData.phone,
-        // Add other relevant formData fields here if needed for tracking in Paychangu
-        services: formData.services, // Example: passing selected services
+        email: formData.email,
+        date: formData.date,
+        timeSlot: formData.timeSlot,
+        services: formData.services,
+        notes: formData.notes,
+        inspirationPhotos: formData.inspirationPhotos || [],
         loyaltyDiscountEligible: loyaltyDiscountEligible, // Example: passing loyalty status
       },
     };
