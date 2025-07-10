@@ -260,11 +260,8 @@ export default function Booking() {
         body: JSON.stringify({
           formData,
           loyaltyDiscountEligible,
-          // The amount should ideally be calculated on the server-side for security
-          // but for now, we'll pass the hardcoded deposit amount
           amount: 10000,
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/verifying`, // Your server's verification URL
-          return_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/status`, // URL for failed/cancelled payments
+          return_url: `${process.env.NEXT_PUBLIC_APP_URL}/booking/status`, // Only send return_url for user redirect
         }),
       });
 

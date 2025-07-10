@@ -14,8 +14,10 @@ export async function POST(req: Request) {
     // Construct tx_ref unique for every transaction
     const tx_ref = `LLB-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
 
-    // Set callback_url to the new webhook endpoint
+    // Always set callback_url to the webhook endpoint
     const callback_url = `${APP_URL}/api/webhook`;
+    // Always set return_url to the user-facing status page
+    const safe_return_url = `${APP_URL}/booking/status`;
 
     const paychanguRequestBody = {
       amount,
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
       first_name: formData.name.split(' ')[0] || formData.name,
       last_name: formData.name.split(' ').slice(1).join(' ') || formData.name,
       callback_url,
-      return_url,
+      return_url: safe_return_url,
       tx_ref,
       customization: {
         title: "Lauryn Luxe Booking Deposit",
