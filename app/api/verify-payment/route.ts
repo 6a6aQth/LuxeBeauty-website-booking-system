@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sendBookingSMS } from '@/lib/sms';
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,6 +92,16 @@ export async function POST(req: NextRequest) {
         discountApplied: isDiscountBooking,
       },
     });
+
+    // Send SMS confirmation (non-blocking)
+    try {
+      await sendBookingSMS(
+        formData.phone,
+        `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${formData.date} at ${formData.timeSlot}.`
+      );
+    } catch (smsError) {
+      console.error('Failed to send SMS:', smsError);
+    }
 
     console.log('Booking created successfully after real-time verification:', newBooking.id); // Original log
 

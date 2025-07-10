@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sendBookingSMS } from '@/lib/sms';
 
 // Helper to verify payment with PayChangu
 async function verifyPayChanguPayment(tx_ref: string) {
@@ -54,6 +55,16 @@ export async function POST(req: NextRequest) {
         discountApplied: meta.discountApplied || false,
       },
     });
+
+    // Send SMS confirmation (non-blocking)
+    try {
+      await sendBookingSMS(
+        meta.phone,
+        `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`
+      );
+    } catch (smsError) {
+      console.error('Failed to send SMS:', smsError);
+    }
 
     return NextResponse.json({ message: 'Booking created successfully.', booking: newBooking }, { status: 201 });
   } catch (error: any) {
