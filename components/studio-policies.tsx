@@ -30,7 +30,7 @@ export function StudioPolicies() {
         <div className="max-h-[60vh] overflow-y-auto pr-4 text-gray-800">
           <PolicySection title="1. Booking & Appointments">
             <ul className="list-disc pl-5">
-              <li>A non-refundable booking fee of K10,000 is required to secure your appointment. This amount will be credited toward your total service cost.</li>
+              <li>A non-refundable booking fee of K100 is required to secure your appointment. This amount will be credited toward your total service cost.</li>
               <li>Advance booking is mandatory. Walk-ins are accepted only if there is available time.</li>
               <li>Please confirm your appointment a day in advance. Unconfirmed appointments are subject to automatic cancellation.</li>
             </ul>
@@ -38,7 +38,7 @@ export function StudioPolicies() {
 
           <PolicySection title="2. Late Arrivals">
             <ul className="list-disc pl-5">
-              <li>A 15-minute grace period is permitted. Arriving later than this will incur a K10,000 late fee.</li>
+              <li>A 15-minute grace period is permitted. Arriving later than this will incur a K100 late fee.</li>
               <li>Excessive lateness may result in your appointment being cancelled, and your deposit will be forfeited.</li>
             </ul>
           </PolicySection>
@@ -88,7 +88,7 @@ export function StudioPoliciesContent() {
     <div className="max-h-[60vh] overflow-y-auto pr-4 text-gray-800">
       <PolicySection title="1. Booking & Appointments">
         <ul className="list-disc pl-5">
-          <li>A non-refundable booking fee of K10,000 is required to secure your appointment. This amount will be credited toward your total service cost.</li>
+          <li>A non-refundable booking fee of K100 is required to secure your appointment. This amount will be credited toward your total service cost.</li>
           <li>Advance booking is mandatory. Walk-ins are accepted only if there is available time.</li>
           <li>Please confirm your appointment a day in advance. Unconfirmed appointments are subject to automatic cancellation.</li>
         </ul>
@@ -96,7 +96,7 @@ export function StudioPoliciesContent() {
 
       <PolicySection title="2. Late Arrivals">
         <ul className="list-disc pl-5">
-          <li>A 15-minute grace period is permitted. Arriving later than this will incur a K10,000 late fee.</li>
+          <li>A 15-minute grace period is permitted. Arriving later than this will incur a K100 late fee.</li>
           <li>Excessive lateness may result in your appointment being cancelled, and your deposit will be forfeited.</li>
         </ul>
       </PolicySection>
