@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { formData, loyaltyDiscountEligible, amount, callback_url, return_url } = await req.json();
+    const { formData, loyaltyDiscountEligible, amount, return_url } = await req.json();
 
     const PAYCHANGU_SECRET_KEY = process.env.PAYCHANGU_SECRET_KEY;
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
 
     if (!PAYCHANGU_SECRET_KEY) {
       return NextResponse.json({ message: 'Paychangu secret key not configured.' }, { status: 500 });
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
 
     // Construct tx_ref unique for every transaction
     const tx_ref = `LLB-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+
+    // Set callback_url to the new webhook endpoint
+    const callback_url = `${APP_URL}/api/webhook`;
 
     const paychanguRequestBody = {
       amount,
@@ -27,10 +31,9 @@ export async function POST(req: Request) {
         description: "Booking deposit for Lauryn Luxe Beauty Studio",
       },
       meta: {
-        phone: formData.phone,
-        // Add other relevant formData fields here if needed for tracking in Paychangu
-        services: formData.services, // Example: passing selected services
-        loyaltyDiscountEligible: loyaltyDiscountEligible, // Example: passing loyalty status
+        ...formData,
+        loyaltyDiscountEligible: loyaltyDiscountEligible,
+        discountApplied: loyaltyDiscountEligible, // for consistency with DB
       },
     };
 
