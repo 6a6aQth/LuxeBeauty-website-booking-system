@@ -172,7 +172,10 @@ export function BookingForm({
             }
           );
           const newBlob = await response.json();
-          uploadedUrls.push(newBlob.url);
+          console.log('Upload response:', newBlob);
+          if (newBlob.url) {
+            uploadedUrls.push(newBlob.url);
+          }
         }
         setFormData((prev: any) => ({
           ...prev,
