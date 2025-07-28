@@ -45,28 +45,19 @@ export async function POST(req: NextRequest) {
 
     // Defensive: Check if booking already exists (by tx_ref or ticketId)
     const existing = await prisma.booking.findFirst({ where: { ticketId: tx_ref } });
-    if (existing) {
-      console.log('Booking already exists for tx_ref:', tx_ref);
-      return NextResponse.json({ message: 'Booking already exists.' }, { status: 200 });
+    if (!existing) {
+      console.error('Booking not found for tx_ref:', tx_ref);
+      return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
     }
 
-    // 5. Create the booking in the database
-    const ticketId = tx_ref;
-    const newBooking = await prisma.booking.create({
+    // Update booking status to 'successful'
+    const updatedBooking = await prisma.booking.update({
+      where: { ticketId: tx_ref },
       data: {
-        name: meta.name,
-        phone: meta.phone,
-        email: meta.email,
-        date: meta.date,
-        timeSlot: meta.timeSlot,
-        services: meta.services,
-        notes: meta.notes,
-        inspirationPhotos: meta.inspirationPhotos || [],
-        ticketId: ticketId,
-        discountApplied: meta.loyaltyDiscountEligible || false,
+        status: 'successful',
+        discountApplied: (existing.discountApplied || meta.loyaltyDiscountEligible || false),
       },
     });
-    console.log('Booking created successfully:', newBooking.id);
 
     // Send SMS confirmation (non-blocking)
     try {
@@ -79,7 +70,7 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send SMS:', smsError);
     }
 
-    return NextResponse.json({ message: 'Booking created', booking: newBooking }, { status: 201 });
+    return NextResponse.json({ message: 'Booking updated', booking: updatedBooking }, { status: 200 });
   } catch (error: any) {
     console.error('PayChangu webhook error:', error);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });

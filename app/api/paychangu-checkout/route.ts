@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
@@ -12,6 +13,26 @@ export async function POST(req: Request) {
 
     // Construct tx_ref unique for every transaction
     const tx_ref = `LLB-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+
+    // Create booking with status 'pending' if it doesn't already exist
+    let booking = await prisma.booking.findUnique({ where: { ticketId: tx_ref } });
+    if (!booking) {
+      booking = await prisma.booking.create({
+        data: {
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          date: formData.date,
+          timeSlot: formData.timeSlot,
+          services: formData.services,
+          notes: formData.notes,
+          inspirationPhotos: formData.inspirationPhotos || [],
+          ticketId: tx_ref,
+          discountApplied: loyaltyDiscountEligible || false,
+          status: 'pending',
+        },
+      });
+    }
 
     const paychanguRequestBody = {
       amount,

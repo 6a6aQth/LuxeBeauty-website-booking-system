@@ -46,6 +46,11 @@ export async function POST(req: NextRequest) {
 
     // Check if the transaction was successful according to PayChangu's data
     if (verificationData.status !== 'success' || verificationData.data.status !== 'success') {
+        // Set booking status to 'failed'
+        await prisma.booking.update({
+          where: { ticketId: tx_ref },
+          data: { status: 'failed' },
+        });
         console.error('Payment not successful according to PayChangu. Verification data status:', verificationData.status, 'Data status:', verificationData.data.status, `tx_ref: ${tx_ref}`); // Enhanced log
         return NextResponse.json({ error: 'Payment not successful according to PayChangu.' }, { status: 400 });
     }
@@ -53,43 +58,28 @@ export async function POST(req: NextRequest) {
     // Optional but recommended: Verify the amount paid is what you expect
     const expectedAmount = 10000; // The amount in MWK for the deposit
     if (verificationData.data.amount < expectedAmount) {
+        // Set booking status to 'failed'
+        await prisma.booking.update({
+          where: { ticketId: tx_ref },
+          data: { status: 'failed' },
+        });
         console.error(`Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}. tx_ref: ${tx_ref}`); // Enhanced log
         return NextResponse.json({ error: `Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}` }, { status: 400 });
     }
     // --- End Real-time Verification ---
 
     // Loyalty Program Logic
-    const bookingCount = await prisma.booking.count({ where: { phone: formData.phone } });
-    const isDiscountBooking = (bookingCount + 1) % 6 === 0; // Apply discount on every 6th booking
+    const booking = await prisma.booking.findUnique({ where: { ticketId: tx_ref } });
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
+    }
 
-    // If verification is successful, proceed to create the booking
-    const ticketId = `LLB-${formData.date.replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    console.log('Attempting to create booking with data:', { // New log
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      date: formData.date,
-      timeSlot: formData.timeSlot,
-      services: formData.services,
-      notes: formData.notes,
-      inspirationPhotos: formData.inspirationPhotos,
-      ticketId: ticketId,
-      discountApplied: isDiscountBooking,
-    });
-
-    const newBooking = await prisma.booking.create({
+    // Update booking status to 'successful'
+    const updatedBooking = await prisma.booking.update({
+      where: { ticketId: tx_ref },
       data: {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        date: formData.date,
-        timeSlot: formData.timeSlot,
-        services: formData.services,
-        notes: formData.notes,
-        inspirationPhotos: formData.inspirationPhotos,
-        ticketId: ticketId,
-        discountApplied: isDiscountBooking,
+        status: 'successful',
+        discountApplied: (booking.discountApplied || ((await prisma.booking.count({ where: { phone: formData.phone } })) + 1) % 6 === 0),
       },
     });
 
@@ -103,9 +93,7 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send SMS:', smsError);
     }
 
-    console.log('Booking created successfully after real-time verification:', newBooking.id); // Original log
-
-    return NextResponse.json(newBooking);
+    return NextResponse.json(updatedBooking);
 
   } catch (error: any) {
     console.error('Verification or booking creation failed:', error.message, 'Stack:', error.stack); // Enhanced log

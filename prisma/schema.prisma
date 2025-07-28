@@ -21,6 +21,7 @@ model Booking {
   inspirationPhotos String[] @default([])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  status            String   @default("successful")
 }
 
 model UnavailableDate {
