@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const statusFilter = searchParams.get('status');
+    
+    let whereClause = {};
+    
+    // If no status filter is specified, only show successful bookings
+    if (!statusFilter || statusFilter === 'successful') {
+      whereClause = { status: 'successful' };
+    } else if (statusFilter === 'all') {
+      // Show all bookings regardless of status
+      whereClause = {};
+    } else {
+      // Filter by specific status
+      whereClause = { status: statusFilter };
+    }
+
     const bookings = await prisma.booking.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: 'desc',
       },

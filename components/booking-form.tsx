@@ -456,20 +456,15 @@ export function BookingForm({
                         </SelectTrigger>
                         <SelectContent className="bg-white text-gray-900 border-gray-200">
                           {date && availableSlotsForSelectedDate.length > 0 ? (
-                            availableSlotsForSelectedDate.map((slot: any) => {
-                              const isUnavailable =
-                                unavailableSlots.includes(slot);
-                              return (
-                                <SelectItem
-                                  key={slot}
-                                  value={slot}
-                                  disabled={isUnavailable}
-                                  className="focus:bg-brand-pink/10"
-                                >
-                                  {formatTime(slot)}
-                                </SelectItem>
-                              );
-                            })
+                            availableSlotsForSelectedDate.map((slot: any) => (
+                              <SelectItem
+                                key={slot}
+                                value={slot}
+                                className="focus:bg-brand-pink/10"
+                              >
+                                {formatTime(slot)}
+                              </SelectItem>
+                            ))
                           ) : (
                             <div className="p-2 text-sm text-gray-500">
                               {date

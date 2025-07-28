@@ -73,6 +73,7 @@ interface Booking {
   discountApplied?: boolean;
   inspirationPhotos?: string[];
   notes?: string;
+  status?: string; // Add status field for filtering
 }
 
 interface UnavailableDate {
@@ -121,6 +122,7 @@ export default function AdminPage() {
   const [isDeletingService, setIsDeletingService] = useState<Service | null>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isClient, setIsClient] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('successful') // Add status filter state
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState<Booking | null>(null);
@@ -142,7 +144,7 @@ export default function AdminPage() {
       try {
       const [bookingsRes, unavailableRes, servicesRes, priceListRes] =
         await Promise.all([
-          fetch('/api/bookings'),
+          fetch(`/api/bookings?status=${statusFilter}`),
           fetch('/api/unavailable-dates'),
           fetch('/api/services'),
           fetch('/api/price-list'),
@@ -175,7 +177,7 @@ export default function AdminPage() {
     if (isAuthenticated) {
       fetchAdminData()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, statusFilter])
 
   const getServiceNames = (serviceIds: string[]): string[] => {
     if (!services || services.length === 0) return serviceIds; // Fallback to IDs if services not loaded
@@ -252,9 +254,14 @@ export default function AdminPage() {
 
     let bookingsToShow = bookings;
 
+    // Filter by status
+    if (statusFilter !== 'all') {
+      bookingsToShow = bookingsToShow.filter(booking => booking.status === statusFilter);
+    }
+
     // Filter for upcoming bookings if showAll is false
     if (!showAll) {
-      bookingsToShow = bookings.filter(booking => {
+      bookingsToShow = bookingsToShow.filter(booking => {
         try {
           const bookingDate = parseISO(booking.date);
           return isValid(bookingDate) && bookingDate >= today;
@@ -296,7 +303,7 @@ export default function AdminPage() {
       };
       return parseTime(a.timeSlot) - parseTime(b.timeSlot);
     });
-  }, [bookings, searchTerm, showAll]);
+  }, [bookings, searchTerm, showAll, statusFilter]);
   
   const weeklyCapacity = useMemo(() => {
     const today = new Date();
@@ -306,7 +313,10 @@ export default function AdminPage() {
     const bookingsInNext7Days = bookings.filter(b => {
       try {
             const bookingDate = parseISO(b.date);
-            return isValid(bookingDate) && isWithinInterval(bookingDate, { start: today, end: next7Days });
+            // Only count successful bookings for capacity calculation
+            return isValid(bookingDate) && 
+                   isWithinInterval(bookingDate, { start: today, end: next7Days }) &&
+                   b.status === 'successful';
       } catch {
         return false;
       }
@@ -332,7 +342,8 @@ export default function AdminPage() {
   const bookingsForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    return bookings.filter(b => b.date.startsWith(dateStr));
+    // Only include successful bookings when determining booked slots
+    return bookings.filter(b => b.date.startsWith(dateStr) && b.status === 'successful');
   }, [selectedDate, bookings]);
 
   const bookedTimeSlots = useMemo(() => {
@@ -376,10 +387,12 @@ export default function AdminPage() {
   };
 
   const bookedDays = useMemo(() => {
-    return bookings.map(b => {
-      const d = parseISO(b.date);
-      return isValid(d) ? d : null;
-    }).filter(Boolean) as Date[];
+    return bookings
+      .filter(b => b.status === 'successful') // Only include successful bookings
+      .map(b => {
+        const d = parseISO(b.date);
+        return isValid(d) ? d : null;
+      }).filter(Boolean) as Date[];
   }, [bookings]);
 
   const parsedUnavailableDates = useMemo(() => {
@@ -615,6 +628,17 @@ export default function AdminPage() {
                 >
                   Upcoming Bookings
                 </Button>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="successful">Successful</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -929,18 +953,17 @@ export default function AdminPage() {
                       }}
                       disabled={isBooked} // Disable if already booked
                     />
-                    <Label htmlFor={`slot-${slot}`} className={`text-sm ${isBooked ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                      {formatTime(slot)}
+                    <Label htmlFor={`slot-${slot}`} className="text-sm text-gray-700">
+                      {slot}
                     </Label>
                   </div>
                 );
               })}
             </div>
+            <Button onClick={handleSaveAvailability} className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
+              Save Availability
+            </Button>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveAvailability} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Changes</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1004,5 +1027,5 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
-} 
+  );
+}

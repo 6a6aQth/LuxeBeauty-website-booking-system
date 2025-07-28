@@ -119,7 +119,7 @@ export default function Booking() {
 
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   const { data: unavailableDatesData = [] } = useSWR('/api/unavailable-dates', fetcher, { refreshInterval: 1000 });
-  const { data: bookingsData = [] } = useSWR('/api/bookings', fetcher, { refreshInterval: 1000 });
+  const { data: bookingsData = [] } = useSWR('/api/bookings?status=successful', fetcher, { refreshInterval: 1000 });
   const { data: latestServices = [] } = useSWR('/api/services', fetcher, { refreshInterval: 0 });
 
   const unavailableSlots = useMemo(() => {
@@ -133,23 +133,32 @@ export default function Booking() {
   const bookedSlots = useMemo(() => {
     const slots: Record<string, string[]> = {};
     bookingsData.forEach((booking: any) => {
-      if (!slots[booking.date]) slots[booking.date] = [];
-      slots[booking.date].push(booking.timeSlot);
+      // Only count successful bookings for slot availability
+      if (booking.status === 'successful') {
+        if (!slots[booking.date]) slots[booking.date] = [];
+        slots[booking.date].push(booking.timeSlot);
+      }
     });
     return slots;
   }, [bookingsData]);
 
   const availableSlotsForSelectedDate = useMemo(() => {
     if (!date) return [];
-    return getSlotsForDate(date);
-  }, [date]);
+    const dateStr = format(date, "yyyy-MM-dd");
+    const allPossibleSlots = getSlotsForDate(date);
+    const bookedSlotsForDate = bookedSlots[dateStr] || [];
+    const unavailableSlotsForDate = unavailableSlots[dateStr] || [];
+    
+    // Return only slots that are not booked and not manually unavailable
+    return allPossibleSlots.filter(slot => 
+      !bookedSlotsForDate.includes(slot) && 
+      !unavailableSlotsForDate.includes(slot)
+    );
+  }, [date, bookedSlots, unavailableSlots]);
 
   const allUnavailableSlotsForDate = useMemo(() => {
     if (!date) return [];
     const dateStr = format(date, "yyyy-MM-dd");
-    console.log('DEBUG date:', date);
-    console.log('DEBUG dateStr:', dateStr);
-    console.log('DEBUG unavailableSlots[dateStr]:', unavailableSlots[dateStr]);
     const bSlots = bookedSlots[dateStr] || [];
     const uSlots = unavailableSlots[dateStr] || [];
     const combined = [...new Set([...bSlots, ...uSlots])];
@@ -184,7 +193,7 @@ export default function Booking() {
     const checkLoyalty = async () => {
       if (step === 'payment' && formData.phone) {
         try {
-          const res = await fetch(`/api/bookings?phone=${encodeURIComponent(formData.phone)}`);
+          const res = await fetch(`/api/bookings?phone=${encodeURIComponent(formData.phone)}&status=successful`);
           if (res.ok) {
             const bookings = await res.json();
             const count = Array.isArray(bookings) ? bookings.length : 0;
@@ -325,11 +334,6 @@ export default function Booking() {
       });
     }
   };
-
-  // Add debug logs before rendering BookingForm
-  console.log('DEBUG allUnavailableSlotsForDate:', allUnavailableSlotsForDate);
-  console.log('DEBUG bookedSlots:', bookedSlots);
-  console.log('DEBUG unavailableSlots:', unavailableSlots);
 
   return (
     <div>
