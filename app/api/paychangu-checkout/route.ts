@@ -5,18 +5,45 @@ export async function POST(req: Request) {
   try {
     const { formData, loyaltyDiscountEligible, amount, callback_url, return_url } = await req.json();
 
+    console.log('🚀 [PAYCHANGU-CHECKOUT] Starting payment checkout process:', {
+      customerName: formData?.name,
+      customerPhone: formData?.phone,
+      customerEmail: formData?.email,
+      bookingDate: formData?.date,
+      bookingTime: formData?.timeSlot,
+      services: formData?.services,
+      amount,
+      loyaltyDiscountEligible,
+      timestamp: new Date().toISOString()
+    });
+
     const PAYCHANGU_SECRET_KEY = process.env.PAYCHANGU_SECRET_KEY;
 
     if (!PAYCHANGU_SECRET_KEY) {
+      console.error('❌ [PAYCHANGU-CHECKOUT] Configuration error: PAYCHANGU_SECRET_KEY not configured');
       return NextResponse.json({ message: 'Paychangu secret key not configured.' }, { status: 500 });
     }
 
     // Construct tx_ref unique for every transaction
     const tx_ref = `LLB-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+    
+    console.log('🆔 [PAYCHANGU-CHECKOUT] Generated transaction reference:', {
+      tx_ref,
+      timestamp: new Date().toISOString()
+    });
 
     // Create booking with status 'pending' if it doesn't already exist
     let booking = await prisma.booking.findUnique({ where: { ticketId: tx_ref } });
     if (!booking) {
+      console.log('📝 [PAYCHANGU-CHECKOUT] Creating new booking with pending status:', {
+        tx_ref,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        bookingDate: formData.date,
+        bookingTime: formData.timeSlot,
+        timestamp: new Date().toISOString()
+      });
+
       booking = await prisma.booking.create({
         data: {
           name: formData.name,
@@ -31,6 +58,20 @@ export async function POST(req: Request) {
           discountApplied: loyaltyDiscountEligible || false,
           status: 'pending',
         },
+      });
+
+      console.log('✅ [PAYCHANGU-CHECKOUT] Booking created successfully:', {
+        tx_ref,
+        bookingId: booking.id,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      console.log('ℹ️ [PAYCHANGU-CHECKOUT] Booking already exists:', {
+        tx_ref,
+        bookingId: booking.id,
+        currentStatus: booking.status,
+        timestamp: new Date().toISOString()
       });
     }
 
@@ -60,6 +101,16 @@ export async function POST(req: Request) {
       },
     };
 
+    console.log('📤 [PAYCHANGU-CHECKOUT] Sending request to PayChangu API:', {
+      tx_ref,
+      amount,
+      currency: "MWK",
+      customerEmail: formData.email,
+      callback_url,
+      return_url,
+      timestamp: new Date().toISOString()
+    });
+
     const paychanguResponse = await fetch('https://api.paychangu.com/payment', {
       method: 'POST',
       headers: {
@@ -72,17 +123,46 @@ export async function POST(req: Request) {
 
     const paychanguData = await paychanguResponse.json();
 
+    console.log('📥 [PAYCHANGU-CHECKOUT] PayChangu API response received:', {
+      tx_ref,
+      paychanguStatus: paychanguData.status,
+      paychanguMessage: paychanguData.message,
+      hasCheckoutUrl: !!paychanguData.data?.checkout_url,
+      timestamp: new Date().toISOString()
+    });
+
     if (paychanguResponse.ok && paychanguData.status === 'success' && paychanguData.data?.checkout_url) {
+      console.log('✅ [PAYCHANGU-CHECKOUT] Payment checkout initiated successfully:', {
+        tx_ref,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        checkoutUrl: paychanguData.data.checkout_url,
+        timestamp: new Date().toISOString()
+      });
+
       return NextResponse.json({ checkout_url: paychanguData.data.checkout_url });
     } else {
-      console.error('Paychangu API error:', paychanguData);
+      console.error('❌ [PAYCHANGU-CHECKOUT] PayChangu API error:', {
+        tx_ref,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        paychanguStatus: paychanguData.status,
+        paychanguMessage: paychanguData.message,
+        paychanguResponse: paychanguData,
+        timestamp: new Date().toISOString()
+      });
+
       return NextResponse.json(
         { message: paychanguData.message || 'Failed to initiate payment with Paychangu.' },
         { status: paychanguResponse.status || 500 }
       );
     }
   } catch (error) {
-    console.error('API route error:', error);
+    console.error('💥 [PAYCHANGU-CHECKOUT] Unexpected error during checkout process:', {
+      error: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString()
+    });
     return NextResponse.json({ message: 'Internal server error.' }, { status: 500 });
   }
 } 

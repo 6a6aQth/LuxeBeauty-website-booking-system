@@ -5,49 +5,130 @@ import { sendBookingSMS } from '@/lib/sms';
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('PayChangu webhook endpoint hit');
+    console.log('🔔 [PAYCHANGU-WEBHOOK] Webhook endpoint hit', {
+      timestamp: new Date().toISOString(),
+      userAgent: req.headers.get('user-agent'),
+      contentType: req.headers.get('content-type')
+    });
+
     // 1. Get the raw body for signature verification
     const rawBody = await req.text();
-    console.log('Raw webhook body:', rawBody);
+    console.log('📄 [PAYCHANGU-WEBHOOK] Raw webhook body received:', {
+      bodyLength: rawBody.length,
+      timestamp: new Date().toISOString()
+    });
+
     const body = JSON.parse(rawBody);
 
     // 2. Verify webhook signature for security
     const signature = req.headers.get('signature');
     const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
-    console.log('Signature header:', signature);
+    
+    console.log('🔐 [PAYCHANGU-WEBHOOK] Signature verification:', {
+      hasSignature: !!signature,
+      hasWebhookSecret: !!webhookSecret,
+      timestamp: new Date().toISOString()
+    });
+    
     if (!webhookSecret) {
-      console.error('Webhook secret not configured.');
+      console.error('❌ [PAYCHANGU-WEBHOOK] Configuration error: PAYCHANGU_WEBHOOK_SECRET not configured');
       return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
     }
+    
     const computedSignature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-    console.log('Computed signature:', computedSignature);
+    
+    // More robust signature verification with detailed logging
+    if (!signature) {
+      console.error('❌ [PAYCHANGU-WEBHOOK] No signature header received from PayChangu', {
+        timestamp: new Date().toISOString()
+      });
+      return NextResponse.json({ error: 'No signature header' }, { status: 401 });
+    }
+    
     if (computedSignature !== signature) {
-      console.error('Invalid signature.');
+      console.error('❌ [PAYCHANGU-WEBHOOK] Invalid signature:', {
+        expected: computedSignature,
+        received: signature,
+        timestamp: new Date().toISOString()
+      });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
+
+    console.log('✅ [PAYCHANGU-WEBHOOK] Signature verification successful');
 
     // 3. Check event type and payment status
     const eventType = body.event || body.type;
     const eventData = body.data;
-    console.log('Event type:', eventType);
-    console.log('Event data:', eventData);
+    
+    console.log('📋 [PAYCHANGU-WEBHOOK] Event details:', {
+      eventType,
+      eventDataStatus: eventData?.status,
+      txRef: eventData?.tx_ref,
+      timestamp: new Date().toISOString()
+    });
 
     if (eventType !== 'payment.success' && eventData?.status !== 'success') {
-      console.log('Not a successful payment event.');
+      console.log('⚠️ [PAYCHANGU-WEBHOOK] Not a successful payment event:', {
+        eventType,
+        eventDataStatus: eventData?.status,
+        timestamp: new Date().toISOString()
+      });
       return NextResponse.json({ message: 'Not a successful payment event.' }, { status: 200 });
     }
 
     // 4. Extract booking info from meta or tx_ref
     const meta = eventData?.meta || {};
     const tx_ref = eventData?.tx_ref;
-    console.log('Meta:', meta);
-    console.log('tx_ref:', tx_ref);
+    
+    console.log('📊 [PAYCHANGU-WEBHOOK] Payment data extracted:', {
+      tx_ref,
+      customerName: meta.name,
+      customerPhone: meta.phone,
+      customerEmail: meta.email,
+      bookingDate: meta.date,
+      bookingTime: meta.timeSlot,
+      amount: eventData?.amount,
+      currency: eventData?.currency,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!tx_ref) {
+      console.error('❌ [PAYCHANGU-WEBHOOK] No tx_ref found in webhook data', {
+        eventData,
+        timestamp: new Date().toISOString()
+      });
+      return NextResponse.json({ error: 'No transaction reference found' }, { status: 400 });
+    }
 
     // Defensive: Check if booking already exists (by tx_ref or ticketId)
     const existing = await prisma.booking.findFirst({ where: { ticketId: tx_ref } });
     if (!existing) {
-      console.error('Booking not found for tx_ref:', tx_ref);
+      console.error('❌ [PAYCHANGU-WEBHOOK] Booking not found in database:', {
+        tx_ref,
+        timestamp: new Date().toISOString()
+      });
       return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
+    }
+
+    console.log('📋 [PAYCHANGU-WEBHOOK] Existing booking found:', {
+      tx_ref,
+      bookingId: existing.id,
+      currentStatus: existing.status,
+      customerName: existing.name,
+      customerPhone: existing.phone,
+      bookingDate: existing.date,
+      bookingTime: existing.timeSlot,
+      timestamp: new Date().toISOString()
+    });
+
+    // Check if booking is already successful to avoid unnecessary updates
+    if (existing.status === 'successful') {
+      console.log('ℹ️ [PAYCHANGU-WEBHOOK] Booking already marked as successful:', {
+        tx_ref,
+        bookingId: existing.id,
+        timestamp: new Date().toISOString()
+      });
+      return NextResponse.json({ message: 'Booking already successful' }, { status: 200 });
     }
 
     // Update booking status to 'successful'
@@ -59,20 +140,56 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    console.log('✅ [PAYCHANGU-WEBHOOK] Booking status updated successfully:', {
+      tx_ref,
+      bookingId: updatedBooking.id,
+      oldStatus: existing.status,
+      newStatus: 'successful',
+      discountApplied: updatedBooking.discountApplied,
+      timestamp: new Date().toISOString()
+    });
+
     // Send SMS confirmation (non-blocking)
     try {
       await sendBookingSMS(
         meta.phone,
         `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`
       );
-      console.log('SMS sent successfully to:', meta.phone);
+      console.log('📱 [PAYCHANGU-WEBHOOK] SMS confirmation sent:', {
+        tx_ref,
+        customerPhone: meta.phone,
+        smsContent: `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`,
+        timestamp: new Date().toISOString()
+      });
     } catch (smsError) {
-      console.error('Failed to send SMS:', smsError);
+      console.error('❌ [PAYCHANGU-WEBHOOK] SMS sending failed:', {
+        tx_ref,
+        customerPhone: meta.phone,
+        smsError: smsError.message,
+        timestamp: new Date().toISOString()
+      });
+      // Don't fail the webhook if SMS fails
     }
+
+    console.log('🎉 [PAYCHANGU-WEBHOOK] Webhook processing completed successfully:', {
+      tx_ref,
+      customerName: meta.name,
+      customerPhone: meta.phone,
+      bookingDate: meta.date,
+      bookingTime: meta.timeSlot,
+      paychanguAmount: eventData?.amount,
+      paychanguCurrency: eventData?.currency,
+      finalStatus: 'successful',
+      timestamp: new Date().toISOString()
+    });
 
     return NextResponse.json({ message: 'Booking updated', booking: updatedBooking }, { status: 200 });
   } catch (error: any) {
-    console.error('PayChangu webhook error:', error);
+    console.error('💥 [PAYCHANGU-WEBHOOK] Unexpected error during webhook processing:', {
+      error: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString()
+    });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 } 
