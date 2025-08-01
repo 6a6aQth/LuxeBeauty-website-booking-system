@@ -55,7 +55,7 @@ export async function POST(req: Request) {
           notes: formData.notes,
           inspirationPhotos: formData.inspirationPhotos || [],
           ticketId: tx_ref,
-          discountApplied: loyaltyDiscountEligible || false,
+          discountApplied: false, // Will be calculated during payment verification
           status: 'pending',
         },
       });
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
         { status: paychanguResponse.status || 500 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('💥 [PAYCHANGU-CHECKOUT] Unexpected error during checkout process:', {
       error: error.message,
       errorStack: error.stack,

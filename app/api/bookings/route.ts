@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get('status');
+    const phoneFilter = searchParams.get('phone');
     
     let whereClause = {};
     
@@ -17,6 +18,11 @@ export async function GET(req: NextRequest) {
     } else {
       // Filter by specific status
       whereClause = { status: statusFilter };
+    }
+
+    // Add phone filter if provided
+    if (phoneFilter) {
+      whereClause = { ...whereClause, phone: phoneFilter };
     }
 
     const bookings = await prisma.booking.findMany({

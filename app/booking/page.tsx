@@ -193,10 +193,12 @@ export default function Booking() {
     const checkLoyalty = async () => {
       if (step === 'payment' && formData.phone) {
         try {
+          // Get the user's successful bookings count from backend
           const res = await fetch(`/api/bookings?phone=${encodeURIComponent(formData.phone)}&status=successful`);
           if (res.ok) {
             const bookings = await res.json();
             const count = Array.isArray(bookings) ? bookings.length : 0;
+            // Calculate if the next booking (current booking + 1) would be eligible
             if ((count + 1) % 6 === 0) {
               setLoyaltyDiscountEligible(true);
             } else {

@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         // If we get here, the request was successful
         break;
         
-      } catch (error) {
+      } catch (error: any) {
         console.error(`💥 [PAYCHANGU-VERIFY] Network/parsing error on attempt ${attempt}:`, {
           attempt,
           maxRetries,
@@ -189,12 +189,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
     }
 
+    // Calculate loyalty discount eligibility - count existing successful bookings for this phone
+    // Exclude the current booking from the count since it's not yet marked as successful
+    const existingSuccessfulBookingsCount = await prisma.booking.count({ 
+      where: { 
+        phone: formData.phone, 
+        status: 'successful',
+        // Exclude the current booking from the count
+        NOT: { ticketId: tx_ref }
+      } 
+    });
+    const isEligibleForDiscount = (existingSuccessfulBookingsCount + 1) % 6 === 0;
+    
+    console.log(`🎯 [PAYCHANGU-VERIFY] Loyalty discount calculation for tx_ref: ${tx_ref}`, {
+      tx_ref,
+      customerPhone: formData.phone,
+      existingSuccessfulBookingsCount,
+      newBookingNumber: existingSuccessfulBookingsCount + 1,
+      isEligibleForDiscount,
+      discountLogic: `(${existingSuccessfulBookingsCount} + 1) % 6 === 0`,
+      currentBookingDiscountApplied: booking.discountApplied,
+      willUpdateDiscountApplied: isEligibleForDiscount,
+      timestamp: new Date().toISOString()
+    });
+
     // Update booking status to 'successful'
     const updatedBooking = await prisma.booking.update({
       where: { ticketId: tx_ref },
       data: {
         status: 'successful',
-        discountApplied: (booking.discountApplied || ((await prisma.booking.count({ where: { phone: formData.phone } })) + 1) % 6 === 0),
+        discountApplied: isEligibleForDiscount,
       },
     });
 
@@ -221,7 +245,7 @@ export async function POST(req: NextRequest) {
         smsContent: `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${formData.date} at ${formData.timeSlot}.`,
         timestamp: new Date().toISOString()
       });
-    } catch (smsError) {
+    } catch (smsError: any) {
       console.error(`❌ [PAYCHANGU-VERIFY] SMS sending failed for tx_ref: ${tx_ref}`, {
         tx_ref,
         customerPhone: formData.phone,

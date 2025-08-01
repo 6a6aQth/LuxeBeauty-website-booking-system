@@ -131,12 +131,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Booking already successful' }, { status: 200 });
     }
 
+    // Calculate loyalty discount eligibility (consistent with verify-payment logic)
+    // Exclude the current booking from the count since it's not yet marked as successful
+    const existingSuccessfulBookingsCount = await prisma.booking.count({ 
+      where: { 
+        phone: meta.phone, 
+        status: 'successful',
+        // Exclude the current booking from the count
+        NOT: { ticketId: tx_ref }
+      } 
+    });
+    const isEligibleForDiscount = (existingSuccessfulBookingsCount + 1) % 6 === 0;
+    
+    console.log('🎯 [PAYCHANGU-WEBHOOK] Loyalty discount calculation:', {
+      tx_ref,
+      customerPhone: meta.phone,
+      existingSuccessfulBookingsCount,
+      newBookingNumber: existingSuccessfulBookingsCount + 1,
+      isEligibleForDiscount,
+      frontendLoyaltyEligible: meta.loyaltyDiscountEligible,
+      discountLogic: `(${existingSuccessfulBookingsCount} + 1) % 6 === 0`,
+      timestamp: new Date().toISOString()
+    });
+
     // Update booking status to 'successful'
     const updatedBooking = await prisma.booking.update({
       where: { ticketId: tx_ref },
       data: {
         status: 'successful',
-        discountApplied: (existing.discountApplied || meta.loyaltyDiscountEligible || false),
+        discountApplied: isEligibleForDiscount,
       },
     });
 
@@ -161,7 +184,7 @@ export async function POST(req: NextRequest) {
         smsContent: `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`,
         timestamp: new Date().toISOString()
       });
-    } catch (smsError) {
+    } catch (smsError: any) {
       console.error('❌ [PAYCHANGU-WEBHOOK] SMS sending failed:', {
         tx_ref,
         customerPhone: meta.phone,
