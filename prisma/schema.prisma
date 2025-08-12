@@ -24,6 +24,23 @@ model Booking {
   status            String   @default("successful")
 }
 
+/// Immutable audit trail of payment-related events per transaction reference
+model PaymentEvent {
+  id          String   @id @default(cuid())
+  txRef       String   // PayChangu tx_ref (same as Booking.ticketId)
+  bookingId   String?  // Optional link to Booking
+  eventType   String   // e.g., checkout_initiated, checkout_response, verify_attempt, verify_success, webhook_received, webhook_success, error
+  status      String?  // arbitrary status string from provider or our system
+  httpStatus  Int?     // HTTP status from provider if applicable
+  message     String?  // brief message
+  payload     Json?    // raw payload from provider/request/response
+  attempt     Int      @default(0) // attempt counter for retries
+  createdAt   DateTime @default(now())
+
+  @@index([txRef])
+  @@index([bookingId])
+}
+
 model UnavailableDate {
   id        String   @id @default(cuid())
   date      String   @unique

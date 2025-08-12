@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { logPaymentEvent } from '@/lib/paymentLogger';
 
 export async function POST(req: Request) {
   try {
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
         status: 'pending',
         timestamp: new Date().toISOString()
       });
-    } else {
+      } else {
       console.log('ℹ️ [PAYCHANGU-CHECKOUT] Booking already exists:', {
         tx_ref,
         bookingId: booking.id,
@@ -74,6 +75,15 @@ export async function POST(req: Request) {
         timestamp: new Date().toISOString()
       });
     }
+
+    // Log event: checkout_initiated
+    await logPaymentEvent({
+      txRef: tx_ref,
+      bookingId: booking?.id,
+      eventType: 'checkout_initiated',
+      status: 'pending',
+      message: 'Checkout initiated and booking persisted (pending)'
+    });
 
     const paychanguRequestBody = {
       amount,
@@ -110,6 +120,13 @@ export async function POST(req: Request) {
       return_url,
       timestamp: new Date().toISOString()
     });
+    await logPaymentEvent({
+      txRef: tx_ref,
+      bookingId: booking?.id,
+      eventType: 'checkout_request',
+      message: 'POST /payment to PayChangu',
+      payload: { amount, currency: 'MWK', email: formData.email, callback_url, return_url },
+    });
 
     const paychanguResponse = await fetch('https://api.paychangu.com/payment', {
       method: 'POST',
@@ -130,6 +147,15 @@ export async function POST(req: Request) {
       hasCheckoutUrl: !!paychanguData.data?.checkout_url,
       timestamp: new Date().toISOString()
     });
+    await logPaymentEvent({
+      txRef: tx_ref,
+      bookingId: booking?.id,
+      eventType: 'checkout_response',
+      status: paychanguData.status,
+      httpStatus: paychanguResponse.status,
+      message: paychanguData.message,
+      payload: paychanguData,
+    });
 
     if (paychanguResponse.ok && paychanguData.status === 'success' && paychanguData.data?.checkout_url) {
       console.log('✅ [PAYCHANGU-CHECKOUT] Payment checkout initiated successfully:', {
@@ -138,6 +164,14 @@ export async function POST(req: Request) {
         customerPhone: formData.phone,
         checkoutUrl: paychanguData.data.checkout_url,
         timestamp: new Date().toISOString()
+      });
+      await logPaymentEvent({
+        txRef: tx_ref,
+        bookingId: booking?.id,
+        eventType: 'checkout_ready',
+        status: 'success',
+        message: 'Checkout URL generated',
+        payload: { checkout_url: paychanguData.data.checkout_url },
       });
 
       return NextResponse.json({ checkout_url: paychanguData.data.checkout_url });
@@ -150,6 +184,15 @@ export async function POST(req: Request) {
         paychanguMessage: paychanguData.message,
         paychanguResponse: paychanguData,
         timestamp: new Date().toISOString()
+      });
+      await logPaymentEvent({
+        txRef: tx_ref,
+        bookingId: booking?.id,
+        eventType: 'checkout_error',
+        status: paychanguData.status,
+        httpStatus: paychanguResponse.status,
+        message: paychanguData.message || 'Failed to initiate payment',
+        payload: paychanguData,
       });
 
       return NextResponse.json(

@@ -557,6 +557,25 @@ export default function AdminPage() {
     }
   };
 
+  const handleMarkSuccessful = async (booking: Booking) => {
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'successful' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update booking status');
+      }
+
+      toast({ title: 'Updated', description: 'Booking marked as successful.' });
+      fetchAdminData();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Could not update booking status.', variant: 'destructive' });
+    }
+  };
+
   if (!isClient) {
     return null; // Render nothing on the server/first-client render
   }
@@ -711,6 +730,14 @@ export default function AdminPage() {
                         >
                           <Edit className="mr-2 h-4 w-4" /> Edit Details
                         </Button>
+                          {booking.status === 'pending' && (
+                            <Button
+                              className="flex-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                              onClick={() => handleMarkSuccessful(booking)}
+                            >
+                              Mark Successful
+                            </Button>
+                          )}
                         <Button
                           variant="destructive"
                           className="flex-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
