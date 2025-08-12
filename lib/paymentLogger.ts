@@ -13,6 +13,12 @@ type PaymentEventInput = {
 
 export async function logPaymentEvent(event: PaymentEventInput): Promise<void> {
   try {
+    // Get the next sequence number for this tx_ref
+    const existingCount = await prisma.paymentEvent.count({
+      where: { txRef: event.txRef }
+    });
+    const sequence = existingCount + 1;
+
     await prisma.paymentEvent.create({
       data: {
         txRef: event.txRef,
@@ -23,6 +29,7 @@ export async function logPaymentEvent(event: PaymentEventInput): Promise<void> {
         message: event.message ?? null,
         payload: (event.payload as any) ?? null,
         attempt: event.attempt ?? 0,
+        sequence: sequence,
       },
     });
   } catch (error: any) {

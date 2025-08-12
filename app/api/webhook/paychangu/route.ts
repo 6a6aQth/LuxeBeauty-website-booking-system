@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createHmac } from 'crypto';
 import { sendBookingSMS } from '@/lib/sms';
+import { logPaymentEvent } from '@/lib/paymentLogger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       console.error('❌ [PAYCHANGU-WEBHOOK] No signature header received from PayChangu', {
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: body?.data?.tx_ref ?? 'unknown', eventType: 'webhook_error', message: 'No signature header', payload: { headers: Object.fromEntries(req.headers) } });
       return NextResponse.json({ error: 'No signature header' }, { status: 401 });
     }
     
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
         received: signature,
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: body?.data?.tx_ref ?? 'unknown', eventType: 'webhook_error', message: 'Invalid signature', payload: { expected: computedSignature, received: signature } });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -73,6 +76,7 @@ export async function POST(req: NextRequest) {
         eventDataStatus: eventData?.status,
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: eventData?.tx_ref ?? 'unknown', eventType: 'webhook_ignored', status: eventData?.status, message: 'Not a successful payment event', payload: body });
       return NextResponse.json({ message: 'Not a successful payment event.' }, { status: 200 });
     }
 
@@ -97,6 +101,7 @@ export async function POST(req: NextRequest) {
         eventData,
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: 'unknown', eventType: 'webhook_error', message: 'No tx_ref in webhook', payload: body });
       return NextResponse.json({ error: 'No transaction reference found' }, { status: 400 });
     }
 
@@ -107,6 +112,7 @@ export async function POST(req: NextRequest) {
         tx_ref,
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: tx_ref, eventType: 'webhook_no_booking', message: 'Booking not found for tx_ref', payload: body });
       return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
     }
 
@@ -128,6 +134,7 @@ export async function POST(req: NextRequest) {
         bookingId: existing.id,
         timestamp: new Date().toISOString()
       });
+      await logPaymentEvent({ txRef: tx_ref, bookingId: existing.id, eventType: 'webhook_already_success', status: 'successful', message: 'Booking already marked as successful' });
       return NextResponse.json({ message: 'Booking already successful' }, { status: 200 });
     }
 
@@ -162,6 +169,7 @@ export async function POST(req: NextRequest) {
         discountApplied: isEligibleForDiscount,
       },
     });
+    await logPaymentEvent({ txRef: tx_ref, bookingId: updatedBooking.id, eventType: 'webhook_mark_success', status: 'successful', message: 'Marked booking successful via webhook', payload: eventData });
 
     console.log('✅ [PAYCHANGU-WEBHOOK] Booking status updated successfully:', {
       tx_ref,
