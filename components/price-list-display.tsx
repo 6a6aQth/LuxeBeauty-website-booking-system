@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
+import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface PriceListDisplayProps {
@@ -11,12 +10,14 @@ interface PriceListDisplayProps {
 }
 
 export function PriceListDisplay({ initialImageUrl }: PriceListDisplayProps) {
-  const [imageUrl] = useState(initialImageUrl || "/Prices-List.png")
-  const [loading] = useState(!initialImageUrl)
+  // Loading state based on whether initialImageUrl exists
+  const loading = !initialImageUrl
 
+  // Download handler
   const handleDownload = () => {
+    if (!initialImageUrl) return
     const link = document.createElement("a")
-    link.href = imageUrl
+    link.href = initialImageUrl
     link.download = "Lauryn-Luxe-Beauty-Price-List.png"
     document.body.appendChild(link)
     link.click()
@@ -30,7 +31,8 @@ export function PriceListDisplay({ initialImageUrl }: PriceListDisplayProps) {
           <Skeleton className="w-full h-[700px] rounded-lg" />
         ) : (
           <Image
-            src={imageUrl}
+            key={initialImageUrl} // forces re-render if URL changes
+            src={`${initialImageUrl}?v=${Date.now()}`} // cache-busting
             alt="Lauryn Luxe Beauty Price List"
             width={1000}
             height={1414}
@@ -45,4 +47,4 @@ export function PriceListDisplay({ initialImageUrl }: PriceListDisplayProps) {
       </Button>
     </div>
   )
-} 
+}
