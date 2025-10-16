@@ -58,6 +58,8 @@ export function BookingForm({
   handlePayment,
   setStep,
   loyaltyDiscountEligible,
+  isRescheduleMode = false,
+  originalBooking,
 }: BookingFormProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
@@ -554,6 +556,12 @@ export function BookingForm({
                     />
                   </div>
 
+                  {isRescheduleMode && originalBooking && (
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-blue-800 text-center font-semibold text-base mb-2">
+                      📅 Rescheduling appointment from {format(new Date(originalBooking.date), "PPP")} at {originalBooking.timeSlot}
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 transition-colors"
@@ -564,7 +572,10 @@ export function BookingForm({
                       !formData.timeSlot
                     }
                   >
-                    {isSubmitting ? "Submitting..." : "Proceed to Pay"}
+                    {isSubmitting 
+                      ? (isRescheduleMode ? "Rescheduling..." : "Submitting...") 
+                      : (isRescheduleMode ? "Reschedule Appointment" : "Proceed to Pay")
+                    }
                   </Button>
                 </form>
               ) : (
