@@ -64,6 +64,8 @@ export function BookingForm({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const [clearedTimeSlot, setClearedTimeSlot] = useState(false);
+  const [preference, setPreference] = useState<'morning' | 'afternoon' | ''>('');
+  const [allocating, setAllocating] = useState(false);
 
   // SWR fetcher
   const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -400,7 +402,7 @@ export function BookingForm({
 
                   <div className="space-y-4 pt-4 border-t border-gray-200">
                     <Label className="text-base font-medium text-gray-900 col-span-full">
-                      Select Date & Time
+                      Select Date & Session
                     </Label>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -445,35 +447,84 @@ export function BookingForm({
                       </Popover>
 
                       <Select
-                        value={formData.timeSlot}
-                        onValueChange={(value) =>
-                          handleSelectChange("timeSlot", value)
-                        }
+                        value={preference}
+                        onValueChange={(value) => setPreference(value as any)}
                         disabled={!date}
                       >
                         <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink">
-                          <SelectValue placeholder="Select a time" />
+                          <SelectValue placeholder="Select session (morning/afternoon)" />
                         </SelectTrigger>
                         <SelectContent className="bg-white text-gray-900 border-gray-200">
-                          {date && availableSlotsForSelectedDate.length > 0 ? (
-                            availableSlotsForSelectedDate.map((slot: any) => (
-                              <SelectItem
-                                key={slot}
-                                value={slot}
-                                className="focus:bg-brand-pink/10"
-                              >
-                                {formatTime(slot)}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="p-2 text-sm text-gray-500">
-                              {date
-                                ? "No slots available."
-                                : "Select a date first."}
-                            </div>
-                          )}
+                          <SelectItem value="morning" className="focus:bg-brand-pink/10">Morning (08:00–12:00)</SelectItem>
+                          <SelectItem value="afternoon" className="focus:bg-brand-pink/10">Afternoon (12:00–16:30)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          if (!date) {
+                            toast({ title: 'Pick a date', description: 'Please select a date first.', variant: 'destructive' });
+                            return;
+                          }
+                          if (!preference) {
+                            toast({ title: 'Select session', description: 'Please choose morning or afternoon.', variant: 'destructive' });
+                            return;
+                          }
+                          if (formData.services.length === 0) {
+                            toast({ title: 'Select services', description: 'Please choose at least one service.', variant: 'destructive' });
+                            return;
+                          }
+                          setAllocating(true);
+                          try {
+                            const res = await fetch('/api/allocate-time', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                date: formData.date,
+                                serviceIds: formData.services,
+                                preference,
+                              }),
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.ok) {
+                              const range = `${data.start}-${data.end}`;
+                              setFormData((prev: any) => ({ ...prev, timeSlot: range }));
+                              toast({ title: 'Time Allocated', description: `Your time: ${range}` });
+                            } else {
+                              setFormData((prev: any) => ({ ...prev, timeSlot: '' }));
+                              const remaining = data?.remainingMinutes ? ` Remaining: ${data.remainingMinutes} min.` : '';
+                              let suggestion = '';
+                              if (Array.isArray(data?.fitServiceIndexes)) {
+                                const serviceNames = data.fitServiceIndexes
+                                  .map((idx: number) => services.find((s) => s.id === formData.services[idx])?.name)
+                                  .filter(Boolean)
+                                  .join(', ');
+                                if (serviceNames) suggestion = ` You could fit: ${serviceNames}.`;
+                              }
+                              toast({ title: 'Not Enough Time', description: `${data?.reason || 'Selected session has insufficient time.'}${remaining}${suggestion}`, variant: 'destructive' });
+                            }
+                          } catch (e: any) {
+                            toast({ title: 'Allocation Failed', description: e?.message || 'Please try again.', variant: 'destructive' });
+                          } finally {
+                            setAllocating(false);
+                          }
+                        }}
+                        disabled={!date || !preference || formData.services.length === 0 || allocating}
+                        className="w-full"
+                      >
+                        {allocating ? 'Allocating…' : (formData.timeSlot ? 'Recalculate Time' : 'Allocate Time')}
+                      </Button>
+
+                      <div className="flex items-center text-sm text-gray-600">
+                        {formData.timeSlot ? (
+                          <span className="font-medium">Allocated: {formData.timeSlot} (includes 10 min break)</span>
+                        ) : (
+                          <span>Select session and allocate time based on selected services.</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
