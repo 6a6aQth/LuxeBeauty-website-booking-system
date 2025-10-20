@@ -683,7 +683,7 @@ export default function AdminPage() {
                             {booking.discountApplied && (
                               <Badge variant="secondary" className="bg-pink-100 text-pink-700 border-pink-200">30% Discount</Badge>
                             )}
-                            {booking.rescheduleCount && booking.rescheduleCount > 0 && (
+                            {(booking.rescheduleCount ?? 0) > 0 && (
                               <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
                                 Rescheduled
                               </Badge>
