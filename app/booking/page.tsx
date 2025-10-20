@@ -28,6 +28,7 @@ import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { FileUpload } from "@/components/ui/file-upload"
 import { BookingForm } from "@/components/booking-form"
 import useSWR from 'swr';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -80,11 +81,10 @@ async function verifyPaymentWithRetry(tx_ref: string, formData: any, retries = 3
   throw new Error('Payment verification failed after multiple attempts.');
 }
 
+
 export default function Booking() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const rescheduleTicketId = searchParams.get('reschedule')
-  
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -105,71 +105,71 @@ export default function Booking() {
   const [paymentStarted, setPaymentStarted] = useState(false);
   const [paymentCancelled, setPaymentCancelled] = useState(false);
   const [loyaltyDiscountEligible, setLoyaltyDiscountEligible] = useState(false);
-  const [isRescheduleMode, setIsRescheduleMode] = useState(false)
-  const [originalBooking, setOriginalBooking] = useState<any>(null)
+  const [isReschedule, setIsReschedule] = useState(false);
+  const [rescheduleTicketId, setRescheduleTicketId] = useState('');
 
   useEffect(() => {
-    // Clear any previous booking data when starting a new booking
+    // Primary path: sessionStorage handoff from lookup page
+    const rescheduleData = sessionStorage.getItem('lauryn-luxe-reschedule-data');
+    if (rescheduleData) {
+      try {
+        const data = JSON.parse(rescheduleData);
+        if (data.isReschedule) {
+          setFormData({
+            name: data.name || "",
+            phone: data.phone || "",
+            email: data.email || "",
+            services: data.services || [], // expects IDs
+            timeSlot: "",
+            date: "",
+            notes: data.notes || "",
+            inspirationPhotos: data.inspirationPhotos || [],
+          });
+          setIsReschedule(true);
+          setRescheduleTicketId(data.ticketId);
+          sessionStorage.removeItem('lauryn-luxe-reschedule-data');
+          return; // done
+        }
+      } catch (error) {
+        console.error('Error parsing reschedule data:', error);
+      }
+    }
+
+    // Fallback path: if user refreshed, use URL params to rehydrate
+    const isRescheduleParam = searchParams?.get('reschedule') === 'true';
+    const ticketIdParam = searchParams?.get('ticketId');
+    if (isRescheduleParam && ticketIdParam) {
+      (async () => {
+        try {
+          const resp = await fetch(`/api/bookings?ticketId=${encodeURIComponent(ticketIdParam)}`);
+          if (!resp.ok) throw new Error('Failed to fetch booking for reschedule');
+          const results = await resp.json();
+          const booking = results?.[0];
+          if (!booking) throw new Error('Booking not found');
+
+          setFormData({
+            name: booking.name || "",
+            phone: booking.phone || "",
+            email: booking.email || "",
+            services: booking.services || [], // IDs from API
+            timeSlot: "",
+            date: "",
+            notes: booking.notes || "",
+            inspirationPhotos: [],
+          });
+          setIsReschedule(true);
+          setRescheduleTicketId(ticketIdParam);
+        } catch (err) {
+          console.error('Reschedule fallback load failed:', err);
+        }
+      })();
+      return;
+    }
+
+    // New booking: clear stale caches
     sessionStorage.removeItem('lauryn-luxe-booking');
     localStorage.removeItem('lauryn-luxe-booking-form');
-  }, []);
-
-  // Load reschedule data if in reschedule mode
-  useEffect(() => {
-    if (rescheduleTicketId) {
-      setIsRescheduleMode(true)
-      loadRescheduleData(rescheduleTicketId)
-    }
-  }, [rescheduleTicketId])
-
-  const loadRescheduleData = async (ticketId: string) => {
-    try {
-      const response = await fetch(`/api/bookings/lookup/${ticketId}`)
-      const data = await response.json()
-
-      if (response.ok && data.booking) {
-        setOriginalBooking(data.booking)
-        const booking = data.booking
-        
-        // Pre-fill form with existing booking data
-        setFormData({
-          name: booking.name,
-          phone: booking.phone,
-          email: booking.email || "",
-          services: booking.services,
-          timeSlot: booking.timeSlot,
-          date: booking.date,
-          notes: booking.notes || "",
-          inspirationPhotos: booking.inspirationPhotos || [],
-        })
-
-        // Set the date for the calendar
-        if (booking.date) {
-          setDate(new Date(booking.date))
-        }
-
-        toast({
-          title: "Reschedule Mode",
-          description: "Your existing booking has been loaded. You can now modify the date and time.",
-        })
-      } else {
-        toast({
-          title: "Booking Not Found",
-          description: data.message || "No booking found with this Ticket ID.",
-          variant: "destructive",
-        })
-        router.push('/reschedule')
-      }
-    } catch (error) {
-      console.error("Failed to load reschedule data:", error)
-      toast({
-        title: "Load Failed",
-        description: "Failed to load your booking. Please try again.",
-        variant: "destructive",
-      })
-      router.push('/reschedule')
-    }
-  }
+  }, [searchParams]);
 
   useEffect(() => {
     if (step === 'payment') {
@@ -299,7 +299,6 @@ export default function Booking() {
       });
       return;
     }
-    
     // Real-time verification: fetch latest services and check availability
     const res = await fetch('/api/services');
     const services = await res.json();
@@ -315,59 +314,59 @@ export default function Booking() {
       return;
     }
 
-    // Handle reschedule mode differently
-    if (isRescheduleMode && rescheduleTicketId) {
-      await handleReschedule();
-    } else {
-      setStep('payment');
-    }
-  };
+    // If this is a reschedule, handle it directly without payment
+    if (isReschedule && rescheduleTicketId) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/reschedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: rescheduleTicketId,
+            newDate: formData.date,
+            newTimeSlot: formData.timeSlot,
+            newServices: formData.services,
+          }),
+        });
 
-  const handleReschedule = async () => {
-    if (!rescheduleTicketId) return;
+        const data = await response.json();
 
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/bookings/reschedule/${rescheduleTicketId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: formData.date,
-          timeSlot: formData.timeSlot,
-          services: formData.services,
-          notes: formData.notes,
-        }),
-      });
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to reschedule booking');
+        }
 
-      const data = await response.json();
+        // Store the updated booking data for ticket generation
+        sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify({
+          ...data.booking,
+          fee: 'Rescheduled - No Additional Charge',
+          isReschedule: true,
+          originalTicketId: rescheduleTicketId
+        }));
 
-      if (response.ok) {
         toast({
           title: "Reschedule Successful",
-          description: "Your appointment has been rescheduled successfully.",
+          description: `Your appointment has been rescheduled to ${format(parseISO(formData.date), "MMMM dd, yyyy")} at ${formatTime(formData.timeSlot)}.`,
         });
-        
-        // Redirect to a success page or back to reschedule page
-        router.push(`/reschedule?success=${rescheduleTicketId}`);
-      } else {
+
+        // Redirect to confirmation page
+        router.push('/booking/confirmation');
+      } catch (error: any) {
+        console.error('Reschedule error:', error);
         toast({
           title: "Reschedule Failed",
-          description: data.message || "Failed to reschedule your appointment. Please try again.",
+          description: error.message || "Could not reschedule your appointment. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error: any) {
-      console.error("Reschedule error:", error);
-      toast({
-        title: "Reschedule Failed",
-        description: "An error occurred while rescheduling. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+
+    // Regular booking flow - proceed to payment
+    setStep('payment');
   };
 
   const handlePayment = async () => {
@@ -399,7 +398,7 @@ export default function Booking() {
 
       if (response.ok && data.checkout_url) {
         window.location.href = data.checkout_url; // Redirect to Paychangu checkout page
-    } else {
+      } else {
         throw new Error(data.message || 'Failed to initiate payment.');
       }
     } catch (error: any) {
@@ -458,8 +457,8 @@ export default function Booking() {
       <MultiStepLoader loadingStates={loadingStates} loading={loading} duration={1500} loop={false} />
 
       <PageHeader
-        title={isRescheduleMode ? "Reschedule Appointment" : "Book an Appointment"}
-        description={isRescheduleMode ? "Modify your existing appointment date and time." : "Schedule your visit to Lauryn Luxe Beauty Studio and treat yourself to a luxurious beauty experience."}
+        title="Book an Appointment"
+        description="Schedule your visit to Lauryn Luxe Beauty Studio and treat yourself to a luxurious beauty experience."
         backgroundImage="/IMG_7410.png"
       />
 
@@ -483,14 +482,21 @@ export default function Booking() {
           handlePayment={handlePayment}
           setStep={setStep}
           loyaltyDiscountEligible={loyaltyDiscountEligible}
-          isRescheduleMode={isRescheduleMode}
-          originalBooking={originalBooking}
+          isReschedule={isReschedule}
         />
       </div>
 
       <Dialog open={isSubmitting}>
         <DialogContent>
-          {/* Existing code for the dialog content */}
+          <DialogHeader>
+            <DialogTitle>Processing Booking</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Please wait while we process your booking...</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

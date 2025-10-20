@@ -21,6 +21,10 @@ interface BookingDetails {
   ticketId: string
   email?: string
   discountApplied: boolean
+  isReschedule?: boolean
+  originalTicketId?: string
+  rescheduleCount?: number
+  originalDate?: string
 }
 
 export default function BookingConfirmationPage() {
@@ -162,6 +166,11 @@ export default function BookingConfirmationPage() {
                   30% Loyalty Discount Applied
                 </div>
               )}
+              {bookingDetails.isReschedule && (
+                <div className="inline-block mb-4 px-4 py-2 rounded-full bg-blue-100 text-blue-800 font-semibold text-sm border border-blue-300">
+                  Rescheduled Appointment
+                </div>
+              )}
               <div className="space-y-4 text-center text-gray-700">
                 <p>
                   <strong>Name:</strong> {bookingDetails.name}
@@ -179,11 +188,21 @@ export default function BookingConfirmationPage() {
                 <p>
                   <strong>Booking Fee:</strong> {bookingDetails.fee}
                 </p>
+                {bookingDetails.isReschedule && bookingDetails.originalDate && (
+                  <p>
+                    <strong>Originally Scheduled:</strong> {format(parseISO(bookingDetails.originalDate), 'MMMM dd, yyyy')}
+                  </p>
+                )}
               </div>
               <div className="mt-8 text-center">
                 <p className="text-sm font-semibold text-gray-800">
                   Ticket ID: {bookingDetails.ticketId}
                 </p>
+                {bookingDetails.isReschedule && bookingDetails.originalTicketId && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Original Ticket: {bookingDetails.originalTicketId}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Show this ticket at the studio for your appointment.
                 </p>
@@ -191,11 +210,16 @@ export default function BookingConfirmationPage() {
             </div>
 
             <div data-html2canvas-ignore="true" className="p-8 border-t border-gray-200 text-center">
-                <PrimitiveButton asChild>
-                    <Link href="/?scroll_to=newsletter-signup">Subscribe to Newsletter</Link>
-                </PrimitiveButton>
+                <div className="space-y-3">
+                    <PrimitiveButton asChild>
+                        <Link href="/?scroll_to=newsletter-signup">Subscribe to Newsletter</Link>
+                    </PrimitiveButton>
+                    <PrimitiveButton variant="outline" asChild>
+                        <Link href={`/reschedule?ticketId=${bookingDetails.ticketId}`}>Reschedule Appointment</Link>
+                    </PrimitiveButton>
+                </div>
                 <p className="text-xs text-gray-500 mt-4 max-w-xs mx-auto">
-                    Stay updated with our latest offers and news.
+                    Stay updated with our latest offers and news. You can reschedule your appointment up to 24 hours before your booking date.
                 </p>
             </div>
 

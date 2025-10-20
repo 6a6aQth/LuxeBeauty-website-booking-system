@@ -1,303 +1,377 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
+import { parseISO, format, isValid, addDays } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { getSlotsForDate, formatTime } from "@/lib/time-slots"
 import { PageHeader } from "@/components/page-header"
-import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, Clock, User, Phone, Mail } from "lucide-react"
-import { format } from "date-fns"
+import { MultiStepLoader } from "@/components/ui/multi-step-loader"
+
+const loadingStates = [
+  { text: "Validating Ticket" },
+  { text: "Checking Availability" },
+  { text: "Updating Appointment" },
+  { text: "Reschedule Complete" },
+]
 
 interface Booking {
-  id: string
-  ticketId: string
-  name: string
-  phone: string
-  email?: string
-  date: string
-  timeSlot: string
-  services: string[]
-  notes?: string
-  inspirationPhotos: string[]
-  status: string
-  discountApplied: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-interface Service {
-  id: string
-  name: string
-  description?: string
-  duration: number
-  category: string
-  isAvailable: boolean
+  id: string;
+  ticketId: string;
+  name: string;
+  phone: string;
+  email?: string;
+  date: string;
+  timeSlot: string;
+  services: string[];
+  notes?: string;
+  rescheduleCount: number;
+  originalDate?: string;
 }
 
 export default function ReschedulePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const successTicketId = searchParams.get('success')
-  
-  const [ticketId, setTicketId] = useState("")
-  const [loading, setLoading] = useState(false)
+  const ticketId = searchParams.get('ticketId')
+
   const [booking, setBooking] = useState<Booking | null>(null)
-  const [services, setServices] = useState<Service[]>([])
-  const [showRescheduleForm, setShowRescheduleForm] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [date, setDate] = useState<Date | undefined>()
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("")
+  const [unavailableDates, setUnavailableDates] = useState<any[]>([])
+  const [fullyBookedDates, setFullyBookedDates] = useState<Date[]>([])
 
-  // Show success message if redirected from successful reschedule
+  // Helper to get minimum booking date (tomorrow)
+  function getMinBookingDate() {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    return d
+  }
+
+  // Helper to get max booking date (1 year from now)
+  function getMaxBookingDate() {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + 1)
+    return d
+  }
+
+  // Load booking details
   useEffect(() => {
-    if (successTicketId) {
+    if (!ticketId) {
       toast({
-        title: "Reschedule Successful!",
-        description: "Your appointment has been rescheduled successfully.",
+        title: "Invalid Ticket",
+        description: "No ticket ID provided. Please use the link from your booking confirmation.",
+        variant: "destructive",
       })
+      router.push('/booking')
+      return
     }
-  }, [successTicketId])
 
-  const handleLookup = async (e: React.FormEvent) => {
+    const fetchBooking = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/reschedule?ticketId=${ticketId}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch booking details')
+        }
+
+        setBooking(data.booking)
+        
+        // Set current date and time slot
+        const currentDate = parseISO(data.booking.date)
+        if (isValid(currentDate)) {
+          setDate(currentDate)
+        }
+        setSelectedTimeSlot(data.booking.timeSlot)
+
+      } catch (error: any) {
+        console.error('Error fetching booking:', error)
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load booking details",
+          variant: "destructive",
+        })
+        router.push('/booking')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBooking()
+  }, [ticketId, router])
+
+  // Load unavailable dates
+  useEffect(() => {
+    const fetchUnavailableDates = async () => {
+      try {
+        const response = await fetch('/api/unavailable-dates')
+        if (response.ok) {
+          const data = await response.json()
+          setUnavailableDates(data)
+        }
+      } catch (error) {
+        console.error('Error fetching unavailable dates:', error)
+      }
+    }
+
+    fetchUnavailableDates()
+  }, [])
+
+  // Load fully booked dates
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      try {
+        const response = await fetch('/api/bookings')
+        if (response.ok) {
+          const bookings = await response.json()
+          const bookedDates = bookings
+            .filter((b: any) => b.status === 'successful')
+            .map((b: any) => {
+              const d = parseISO(b.date)
+              return isValid(d) ? d : null
+            })
+            .filter(Boolean) as Date[]
+          
+          setFullyBookedDates(bookedDates)
+        }
+      } catch (error) {
+        console.error('Error fetching booked dates:', error)
+      }
+    }
+
+    fetchBookedDates()
+  }, [])
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate)
+    setSelectedTimeSlot("") // Reset time slot when date changes
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!ticketId.trim()) {
+    
+    if (!booking) return
+
+    if (!date || !selectedTimeSlot) {
       toast({
-        title: "Ticket ID Required",
-        description: "Please enter your Ticket ID to look up your booking.",
+        title: "Missing Information",
+        description: "Please select both a new date and time slot.",
         variant: "destructive",
       })
       return
     }
 
-    setLoading(true)
+    setIsSubmitting(true)
+
     try {
-      const response = await fetch(`/api/bookings/lookup/${ticketId}`)
+      const response = await fetch('/api/reschedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: booking.ticketId,
+          newDate: format(date, "yyyy-MM-dd"),
+          newTimeSlot: selectedTimeSlot,
+        }),
+      })
+
       const data = await response.json()
 
-      if (response.ok && data.booking) {
-        setBooking(data.booking)
-        setServices(data.services || [])
-        setShowRescheduleForm(true)
-        toast({
-          title: "Booking Found",
-          description: "Your booking has been found. You can now reschedule it.",
-        })
-      } else {
-        toast({
-          title: "Booking Not Found",
-          description: data.message || "No booking found with this Ticket ID.",
-          variant: "destructive",
-        })
-        setBooking(null)
-        setShowRescheduleForm(false)
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reschedule booking')
       }
-    } catch (error) {
-      console.error("Lookup error:", error)
+
       toast({
-        title: "Lookup Failed",
-        description: "Failed to look up your booking. Please try again.",
+        title: "Reschedule Successful",
+        description: `Your appointment has been rescheduled to ${format(date, "MMMM dd, yyyy")} at ${formatTime(selectedTimeSlot)}.`,
+      })
+
+      // Redirect to booking status page
+      router.push(`/booking/status?ticketId=${booking.ticketId}`)
+
+    } catch (error: any) {
+      console.error('Reschedule error:', error)
+      toast({
+        title: "Reschedule Failed",
+        description: error.message || "Could not reschedule your appointment. Please try again.",
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleReschedule = () => {
-    if (!booking) return
-    
-    // Navigate to booking page with reschedule mode
-    router.push(`/booking?reschedule=${booking.ticketId}`)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <MultiStepLoader loadingStates={loadingStates} loading={loading} />
+      </div>
+    )
   }
 
-  const getServiceNames = (serviceIds: string[]) => {
-    return serviceIds
-      .map(id => services.find(s => s.id === id)?.name)
-      .filter(Boolean)
-      .join(", ")
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "successful":
-        return "bg-green-100 text-green-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "failed":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  return (
-    <div>
-      <PageHeader
-        title="Reschedule Appointment"
-        description="Use your Ticket ID to reschedule your existing appointment."
-        backgroundImage="/IMG_7410.png"
-      />
-
-      <div className="container mx-auto py-12 px-4">
-        <Card className="max-w-2xl mx-auto">
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              Look Up Your Booking
-            </CardTitle>
+            <CardTitle>Booking Not Found</CardTitle>
             <CardDescription>
-              Enter your Ticket ID to find and reschedule your appointment.
+              We couldn't find a booking with the provided ticket ID.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLookup} className="space-y-6">
-              <div>
-                <Label htmlFor="ticketId" className="text-base font-medium text-gray-900">
-                  Ticket ID
-                </Label>
-                <Input
-                  id="ticketId"
-                  type="text"
-                  placeholder="Enter your Ticket ID (e.g., LLB-1234567890-123456)"
-                  value={ticketId}
-                  onChange={(e) => setTicketId(e.target.value)}
-                  className="mt-2 bg-gray-50 border-gray-300 text-gray-900 rounded-md focus:ring-brand-pink focus:border-brand-pink"
-                  disabled={loading}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-brand-pink text-white hover:bg-brand-pink/90 transition-colors"
-                disabled={loading || !ticketId.trim()}
-              >
-                {loading ? "Looking up..." : "Look Up Booking"}
-              </Button>
-            </form>
-
-            {booking && (
-              <div className="mt-8 space-y-6">
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Booking Details</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <span className="font-medium">Name:</span>
-                        <span className="ml-2 text-gray-900">{booking.name}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Phone className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <span className="font-medium">Phone:</span>
-                        <span className="ml-2 text-gray-900">{booking.phone}</span>
-                      </div>
-                    </div>
-
-                    {booking.email && (
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-5 w-5 text-gray-500" />
-                        <div>
-                          <span className="font-medium">Email:</span>
-                          <span className="ml-2 text-gray-900">{booking.email}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3">
-                      <CalendarIcon className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <span className="font-medium">Date:</span>
-                        <span className="ml-2 text-gray-900">
-                          {format(new Date(booking.date), "PPP")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-gray-500" />
-                      <div>
-                        <span className="font-medium">Time:</span>
-                        <span className="ml-2 text-gray-900">{booking.timeSlot}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="font-medium">Services:</span>
-                      <div className="mt-1 flex flex-wrap gap-2">
-                        {booking.services.map((serviceId) => {
-                          const service = services.find(s => s.id === serviceId)
-                          return service ? (
-                            <Badge
-                              key={serviceId}
-                              variant="default"
-                              className="bg-brand-pink/10 text-brand-pink border-brand-pink/20"
-                            >
-                              {service.name}
-                            </Badge>
-                          ) : null
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">Status:</span>
-                      <Badge className={getStatusColor(booking.status)}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
-                      {booking.discountApplied && (
-                        <Badge className="bg-purple-100 text-purple-800">
-                          Loyalty Discount Applied
-                        </Badge>
-                      )}
-                    </div>
-
-                    {booking.notes && (
-                      <div>
-                        <span className="font-medium">Notes:</span>
-                        <p className="mt-1 text-gray-700">{booking.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Reschedule Options</h3>
-                  
-                  <div className="space-y-4">
-                    <p className="text-gray-600">
-                      You can reschedule your appointment to a different date and time. 
-                      The system will automatically allocate the appropriate time based on your selected services.
-                    </p>
-                    
-                    <div className="flex gap-4">
-                      <Button
-                        onClick={handleReschedule}
-                        className="flex-1 bg-brand-pink text-white hover:bg-brand-pink/90"
-                      >
-                        Reschedule Appointment
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setBooking(null)
-                          setShowRescheduleForm(false)
-                          setTicketId("")
-                        }}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            <Button onClick={() => router.push('/booking')} className="w-full">
+              Back to Booking
+            </Button>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  const availableTimeSlots = date ? getSlotsForDate(date, unavailableDates, fullyBookedDates) : []
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+      <PageHeader 
+        title="Reschedule Appointment" 
+        description="Change your appointment date and time"
+      />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          {/* Current Booking Info */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Current Appointment</CardTitle>
+              <CardDescription>Your current booking details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Name:</span> {booking.name}
+                </div>
+                <div>
+                  <span className="font-medium">Phone:</span> {booking.phone}
+                </div>
+                <div>
+                  <span className="font-medium">Current Date:</span> {format(parseISO(booking.date), "MMMM dd, yyyy")}
+                </div>
+                <div>
+                  <span className="font-medium">Current Time:</span> {formatTime(booking.timeSlot)}
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Services:</span> {booking.services.join(", ")}
+                </div>
+                {booking.originalDate && (
+                  <div className="col-span-2">
+                    <span className="font-medium">Original Date:</span> {format(parseISO(booking.originalDate), "MMMM dd, yyyy")}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Reschedule Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Select New Date & Time</CardTitle>
+              <CardDescription>
+                Choose a new date and time for your appointment. You can only reschedule once.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Date Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="date">New Appointment Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={handleDateSelect}
+                        disabled={(date) => {
+                          const today = new Date()
+                          today.setHours(0, 0, 0, 0)
+                          return date < today || date < getMinBookingDate() || date > getMaxBookingDate()
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Time Slot Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="timeSlot">New Time Slot</Label>
+                  <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTimeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {formatTime(slot)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {date && availableTimeSlots.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No available time slots for this date.
+                    </p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={!date || !selectedTimeSlot || isSubmitting}
+                >
+                  {isSubmitting ? "Rescheduling..." : "Reschedule Appointment"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Back Button */}
+          <div className="mt-6 text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push(`/booking/status?ticketId=${booking.ticketId}`)}
+            >
+              Back to Booking Status
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
