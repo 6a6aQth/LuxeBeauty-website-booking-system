@@ -2,7 +2,6 @@
 
 // Prevent prerender/static export errors on this interactive page
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 import type React from "react"
 
