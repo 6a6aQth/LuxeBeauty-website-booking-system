@@ -199,11 +199,7 @@ export default function BookingConfirmationPage() {
                 <p className="text-sm font-semibold text-gray-800">
                   Ticket ID: {bookingDetails.ticketId}
                 </p>
-                {bookingDetails.isReschedule && bookingDetails.originalTicketId && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    Original Ticket: {bookingDetails.originalTicketId}
-                  </p>
-                )}
+                {/* Original Ticket line removed per request */}
                 <p className="text-xs text-gray-500 mt-1">
                   Show this ticket at the studio for your appointment.
                 </p>
@@ -215,12 +211,9 @@ export default function BookingConfirmationPage() {
                     <PrimitiveButton asChild>
                         <Link href="/?scroll_to=newsletter-signup">Subscribe to Newsletter</Link>
                     </PrimitiveButton>
-                    <PrimitiveButton variant="outline" asChild>
-                        <Link href={`/reschedule?ticketId=${bookingDetails.ticketId}`}>Reschedule Appointment</Link>
-                    </PrimitiveButton>
                 </div>
                 <p className="text-xs text-gray-500 mt-4 max-w-xs mx-auto">
-                    Stay updated with our latest offers and news. You can reschedule your appointment up to 24 hours before your booking date.
+                    Stay updated with our latest offers and news.
                 </p>
             </div>
 
