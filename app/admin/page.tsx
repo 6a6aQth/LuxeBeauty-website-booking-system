@@ -683,13 +683,21 @@ export default function AdminPage() {
                             {booking.discountApplied && (
                               <Badge variant="secondary" className="bg-pink-100 text-pink-700 border-pink-200">30% Discount</Badge>
                             )}
-                            {/* Reschedule badge hidden per request */}
+                            {booking.rescheduleCount && booking.rescheduleCount > 0 && (
+                              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+                                Rescheduled
+                              </Badge>
+                            )}
                           </div>
                 </div>
                         <div className="text-right flex-shrink-0">
                           <p className="font-semibold">{format(parseISO(booking.date), 'EEE, MMM d')}</p>
                           <p className="text-sm text-brand-pink font-medium">{booking.timeSlot}</p>
-                          {/* Original date hidden per request */}
+                          {booking.originalDate && booking.originalDate !== booking.date && (
+                            <p className="text-xs text-gray-500">
+                              Originally: {format(parseISO(booking.originalDate), 'MMM d')}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">

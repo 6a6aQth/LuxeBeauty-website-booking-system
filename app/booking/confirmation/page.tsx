@@ -36,16 +36,60 @@ export default function BookingConfirmationPage() {
 
   useEffect(() => {
     setIsClient(true);
-    try {
-      const storedBooking = sessionStorage.getItem('lauryn-luxe-booking');
-      if (storedBooking) {
-        setBookingDetails(JSON.parse(storedBooking));
-      } else {
+
+    const hydrateFromDb = async () => {
+      try {
+        // We may still have session data (to get ticketId/fee), but booking details come from DB
+        const stored = sessionStorage.getItem('lauryn-luxe-booking');
+        let fallbackFee: string | undefined = undefined;
+        let ticketIdFromSession: string | undefined = undefined;
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            fallbackFee = parsed?.fee;
+            ticketIdFromSession = parsed?.ticketId;
+          } catch {}
+        }
+
+        const ticketId = ticketIdFromSession;
+        if (!ticketId) {
+          // No ticketId – leave as null; user may have navigated here directly
+          setBookingDetails(null);
+          return;
+        }
+
+        const res = await fetch(`/api/bookings?ticketId=${encodeURIComponent(ticketId)}`);
+        if (!res.ok) throw new Error('Failed to fetch booking');
+        const arr = await res.json();
+        const b = arr?.[0];
+        if (!b) {
+          setBookingDetails(null);
+          return;
+        }
+
+        const isReschedule = (b.rescheduleCount ?? 0) > 0;
+        const feeString = isReschedule ? 'Rescheduled - No Additional Charge' : (fallbackFee || 'K10,000 (Paid)');
+
+        setBookingDetails({
+          id: b.id,
+          name: b.name,
+          date: b.date,
+          timeSlot: b.timeSlot,
+          services: b.services,
+          fee: feeString,
+          ticketId: b.ticketId,
+          email: b.email,
+          discountApplied: !!b.discountApplied,
+          isReschedule,
+          rescheduleCount: b.rescheduleCount,
+          originalDate: b.originalDate,
+        });
+      } catch {
         setBookingDetails(null);
       }
-    } catch (error) {
-      setBookingDetails(null);
-    }
+    };
+
+    hydrateFromDb();
 
     const fetchServices = async () => {
       try {
