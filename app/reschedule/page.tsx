@@ -1,7 +1,11 @@
 "use client"
 
+// Ensure this interactive page is dynamically rendered and not prerendered
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,6 +44,14 @@ interface Booking {
 }
 
 export default function ReschedulePage() {
+  return (
+    <Suspense fallback={null}>
+      <RescheduleContent />
+    </Suspense>
+  )
+}
+
+function RescheduleContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const ticketId = searchParams.get('ticketId')
