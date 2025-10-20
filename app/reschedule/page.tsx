@@ -2,7 +2,6 @@
 
 // Ensure this interactive page is dynamically rendered and not prerendered
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 import type React from "react"
 import { useState, useEffect, Suspense } from "react"
