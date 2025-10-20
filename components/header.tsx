@@ -21,6 +21,7 @@ const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/prices", label: "Prices" },
   { href: "/booking", label: "Booking" },
+  { href: "/lookup", label: "Find Booking" },
   { href: "/contact", label: "Contact" },
 ]
 

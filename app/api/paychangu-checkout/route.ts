@@ -57,6 +57,8 @@ export async function POST(req: Request) {
           inspirationPhotos: formData.inspirationPhotos || [],
           ticketId: tx_ref,
           discountApplied: false, // Will be calculated during payment verification
+          rescheduleCount: 0,
+          originalDate: null,
           status: 'pending',
         },
       });

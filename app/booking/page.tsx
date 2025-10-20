@@ -28,6 +28,7 @@ import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import { FileUpload } from "@/components/ui/file-upload"
 import { BookingForm } from "@/components/booking-form"
 import useSWR from 'swr';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -80,8 +81,10 @@ async function verifyPaymentWithRetry(tx_ref: string, formData: any, retries = 3
   throw new Error('Payment verification failed after multiple attempts.');
 }
 
+
 export default function Booking() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -102,12 +105,71 @@ export default function Booking() {
   const [paymentStarted, setPaymentStarted] = useState(false);
   const [paymentCancelled, setPaymentCancelled] = useState(false);
   const [loyaltyDiscountEligible, setLoyaltyDiscountEligible] = useState(false);
+  const [isReschedule, setIsReschedule] = useState(false);
+  const [rescheduleTicketId, setRescheduleTicketId] = useState('');
 
   useEffect(() => {
-    // Clear any previous booking data when starting a new booking
+    // Primary path: sessionStorage handoff from lookup page
+    const rescheduleData = sessionStorage.getItem('lauryn-luxe-reschedule-data');
+    if (rescheduleData) {
+      try {
+        const data = JSON.parse(rescheduleData);
+        if (data.isReschedule) {
+          setFormData({
+            name: data.name || "",
+            phone: data.phone || "",
+            email: data.email || "",
+            services: data.services || [], // expects IDs
+            timeSlot: "",
+            date: "",
+            notes: data.notes || "",
+            inspirationPhotos: data.inspirationPhotos || [],
+          });
+          setIsReschedule(true);
+          setRescheduleTicketId(data.ticketId);
+          sessionStorage.removeItem('lauryn-luxe-reschedule-data');
+          return; // done
+        }
+      } catch (error) {
+        console.error('Error parsing reschedule data:', error);
+      }
+    }
+
+    // Fallback path: if user refreshed, use URL params to rehydrate
+    const isRescheduleParam = searchParams?.get('reschedule') === 'true';
+    const ticketIdParam = searchParams?.get('ticketId');
+    if (isRescheduleParam && ticketIdParam) {
+      (async () => {
+        try {
+          const resp = await fetch(`/api/bookings?ticketId=${encodeURIComponent(ticketIdParam)}`);
+          if (!resp.ok) throw new Error('Failed to fetch booking for reschedule');
+          const results = await resp.json();
+          const booking = results?.[0];
+          if (!booking) throw new Error('Booking not found');
+
+          setFormData({
+            name: booking.name || "",
+            phone: booking.phone || "",
+            email: booking.email || "",
+            services: booking.services || [], // IDs from API
+            timeSlot: "",
+            date: "",
+            notes: booking.notes || "",
+            inspirationPhotos: [],
+          });
+          setIsReschedule(true);
+          setRescheduleTicketId(ticketIdParam);
+        } catch (err) {
+          console.error('Reschedule fallback load failed:', err);
+        }
+      })();
+      return;
+    }
+
+    // New booking: clear stale caches
     sessionStorage.removeItem('lauryn-luxe-booking');
     localStorage.removeItem('lauryn-luxe-booking-form');
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (step === 'payment') {
@@ -251,6 +313,59 @@ export default function Booking() {
       });
       return;
     }
+
+    // If this is a reschedule, handle it directly without payment
+    if (isReschedule && rescheduleTicketId) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/reschedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: rescheduleTicketId,
+            newDate: formData.date,
+            newTimeSlot: formData.timeSlot,
+            newServices: formData.services,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to reschedule booking');
+        }
+
+        // Store the updated booking data for ticket generation
+        sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify({
+          ...data.booking,
+          fee: 'Rescheduled - No Additional Charge',
+          isReschedule: true,
+          originalTicketId: rescheduleTicketId
+        }));
+
+        toast({
+          title: "Reschedule Successful",
+          description: `Your appointment has been rescheduled to ${format(parseISO(formData.date), "MMMM dd, yyyy")} at ${formatTime(formData.timeSlot)}.`,
+        });
+
+        // Redirect to confirmation page
+        router.push('/booking/confirmation');
+      } catch (error: any) {
+        console.error('Reschedule error:', error);
+        toast({
+          title: "Reschedule Failed",
+          description: error.message || "Could not reschedule your appointment. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Regular booking flow - proceed to payment
     setStep('payment');
   };
 
@@ -283,7 +398,7 @@ export default function Booking() {
 
       if (response.ok && data.checkout_url) {
         window.location.href = data.checkout_url; // Redirect to Paychangu checkout page
-    } else {
+      } else {
         throw new Error(data.message || 'Failed to initiate payment.');
       }
     } catch (error: any) {
@@ -367,12 +482,21 @@ export default function Booking() {
           handlePayment={handlePayment}
           setStep={setStep}
           loyaltyDiscountEligible={loyaltyDiscountEligible}
+          isReschedule={isReschedule}
         />
       </div>
 
       <Dialog open={isSubmitting}>
         <DialogContent>
-          {/* Existing code for the dialog content */}
+          <DialogHeader>
+            <DialogTitle>Processing Booking</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Please wait while we process your booking...</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

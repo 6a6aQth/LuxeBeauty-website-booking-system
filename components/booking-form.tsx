@@ -58,6 +58,7 @@ export function BookingForm({
   handlePayment,
   setStep,
   loyaltyDiscountEligible,
+  isReschedule,
 }: BookingFormProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showPoliciesDialog, setShowPoliciesDialog] = useState(false);
@@ -513,7 +514,7 @@ export function BookingForm({
                       !formData.timeSlot
                     }
                   >
-                    {isSubmitting ? "Submitting..." : "Proceed to Pay"}
+                    {isSubmitting ? "Submitting..." : "Proceed"}
                   </Button>
                 </form>
               ) : (
@@ -618,11 +619,11 @@ export function BookingForm({
                       Go Back & Edit
                     </Button>
                     <Button
-                      onClick={handlePayment}
+                      onClick={isReschedule ? handleSubmit : handlePayment}
                       disabled={isPaying || !agreedToTerms}
                       className="w-full bg-green-500 text-white hover:bg-green-600"
                     >
-                      {isPaying ? "Processing..." : "Pay"}
+                      {isPaying ? "Processing..." : isReschedule ? "Reschedule Appointment" : "Pay"}
                     </Button>
                   </div>
                 </div>
