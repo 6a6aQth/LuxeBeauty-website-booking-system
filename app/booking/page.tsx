@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import type React from "react"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -85,7 +85,16 @@ async function verifyPaymentWithRetry(tx_ref: string, formData: any, retries = 3
 }
 
 
+// Wrap the client component that uses useSearchParams in Suspense to satisfy Next.js CSR bailout
 export default function Booking() {
+  return (
+    <Suspense fallback={null}>
+      <BookingContent />
+    </Suspense>
+  );
+}
+
+function BookingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
