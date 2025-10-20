@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/animated-download-button'
 import { Mail, Phone, Home } from 'lucide-react'
 import { Service } from '@/types/types';
+import { format, parseISO } from 'date-fns'
 
 interface BookingDetails {
   id: string

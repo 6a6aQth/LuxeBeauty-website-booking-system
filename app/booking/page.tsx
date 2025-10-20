@@ -499,14 +499,14 @@ function BookingContent() {
       </div>
 
       <Dialog open={isSubmitting}>
-        <DialogContent>
+        <DialogContent aria-describedby="booking-processing-description">
           <DialogHeader>
             <DialogTitle>Processing Booking</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Please wait while we process your booking...</p>
+              <p id="booking-processing-description" className="text-gray-600">Please wait while we process your booking...</p>
             </div>
           </div>
         </DialogContent>
