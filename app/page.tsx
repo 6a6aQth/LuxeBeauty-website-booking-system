@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import React, { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
@@ -12,6 +12,7 @@ import { AnimatedSection } from "@/components/ui/animated-section"
 import NewsletterSignup from "@/components/newsletter-signup"
 import { PulsatingButton } from "@/components/ui/pulsating-button"
 import { SparklesText } from "@/components/ui/sparkles-text"
+import { Snowfall } from "@/components/snowfall"
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -39,7 +40,15 @@ function HomeContent() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[600px] w-full bg-gradient-to-r from-white to-gray-300 flex items-center">
+      <section className="relative h-[80vh] min-h-[600px] w-full holiday-gradient flex items-center overflow-hidden">
+        <Snowfall count={34} />
+        <Image
+          src="/christmas-icon.png"
+          alt="Holiday ornament"
+          width={180}
+          height={180}
+          className="absolute -right-10 top-12 opacity-40 blur-xs hidden lg:block"
+        />
         <div className="container mx-auto px-4 z-10">
           <div className="max-w-3xl mx-auto text-center">
             <div className="mb-8">
@@ -50,16 +59,19 @@ function HomeContent() {
               <div className="text-sm tracking-[0.2em] mt-1">B E A U T Y &nbsp; S T U D I O</div>
               <div className="text-xs tracking-[0.1em] mt-0.5">E S T D 2 0 2 2</div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-serif font-light mb-6 glow-text">Luxury beauty, redefined.</h1>
-            <p className="text-lg md:text-xl mb-8 max-w-xl mx-auto text-gray-700">
-              Experience premium nail care and beauty services in the heart of Blantyre.
+            <h1 className="text-4xl md:text-6xl font-serif font-light mb-6 glow-text">
+              Holiday luxury, reimagined.
+            </h1>
+            <p className="text-lg md:text-xl mb-6 max-w-2xl mx-auto text-gray-700">
+              Cozy up to limited-edition nail art, cinnamon-infused rituals, and shimmering finishes curated for the
+              festive season in the heart of Blantyre.
             </p>
             <div className="flex justify-center">
-            <Link href="/booking">
-                <PulsatingButton className="bg-black text-white hover:bg-gray-800 rounded-none px-6 py-4 text-base">
-                Book Appointment
+              <Link href="/booking">
+                <PulsatingButton className="bg-[#b5122c] text-white hover:bg-[#8f0f23] rounded-none px-6 py-4 text-base">
+                  Book Holiday Appointment
                 </PulsatingButton>
-            </Link>
+              </Link>
             </div>
           </div>
         </div>
