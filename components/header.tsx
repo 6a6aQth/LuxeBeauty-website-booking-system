@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,31 +32,9 @@ const Header = () => {
   const isAdminPage = pathname.startsWith('/admin')
 
   return (
-    <header id="main-header" className="bg-white shadow-md relative overflow-hidden">
-      {!isAdminPage && <div className="holiday-border h-1 w-full" />}
-
-      {!isAdminPage && (
-        <div className="bg-gradient-to-r from-[#b5122c] via-[#b5122c] to-[#0f6f2f] text-white text-sm md:text-base py-2">
-          <div className="container mx-auto px-4 flex flex-wrap items-center justify-center gap-3 text-center">
-            <Image
-              src="/christmas-icon.png"
-              alt="Holiday ornament"
-              width={28}
-              height={28}
-              className="w-6 h-6 sm:w-7 sm:h-7"
-            />
-            <span className="font-medium tracking-wide text-center">
-              Unwrap your December glam · Glam That Shines Brighter Than Christmas Lights
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="container mx-auto px-4 min-h-20 py-2 flex justify-between items-center relative">
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_top,_rgba(229,75,75,0.25),_transparent_60%)]" />
-        <div className="relative z-10">
-          <Logo />
-        </div>
+    <header id="main-header" className="bg-white shadow-md">
+      <div className="container mx-auto px-4 min-h-20 py-2 flex justify-between items-center">
+        <Logo />
 
         {/* Desktop Navigation */}
         {!isAdminPage && (
@@ -78,13 +55,13 @@ const Header = () => {
           </nav>
         )}
 
-        <div className="hidden md:block relative z-10">
+        <div className="hidden md:block">
           {isAdminPage ? (
             <div className="flex items-center pr-4">
               <span className="font-semibold text-pink-600">Admin</span>
             </div>
           ) : (
-            <Button asChild className="rounded-none bg-[#B5122C] hover:bg-[#8F0F23] text-white border border-[#b5122c]/30">
+            <Button asChild className="rounded-none">
               <Link href="/booking">Book Appointment</Link>
             </Button>
           )}
@@ -132,10 +109,7 @@ const Header = () => {
                       <span className="font-semibold text-pink-600">Admin Mode</span>
                     </div>
                   ) : (
-                    <Button
-                      asChild
-                      className="w-full rounded-none bg-[#B5122C] hover:bg-[#8F0F23] text-white border border-[#b5122c]/40"
-                    >
+                    <Button asChild className="w-full rounded-none">
                       <Link href="/booking" onClick={() => setIsMobileMenuOpen(false)}>
                         Book Appointment
                       </Link>
