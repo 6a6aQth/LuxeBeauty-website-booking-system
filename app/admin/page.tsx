@@ -615,7 +615,10 @@ export default function AdminPage() {
   };
 
   const handleSaveBooking = async () => {
-    if (!editingBookingData || !isEditingBooking) return;
+    if (!editingBookingData || !isEditingBooking) {
+      console.error('Missing booking data or editing state');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/bookings/${isEditingBooking.id}`, {
@@ -634,6 +637,7 @@ export default function AdminPage() {
       setEditingBookingData(null);
       fetchAdminData();
     } catch (error: any) {
+      console.error('Error saving booking:', error);
       toast({
         title: 'Error',
         description: error.message || 'Could not update booking.',
@@ -1580,7 +1584,7 @@ export default function AdminPage() {
               Cancel
             </Button>
             <Button
-              onClick={handleSaveBooking}
+              onClick={() => handleSaveBooking()}
               className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90"
             >
               Save Changes
