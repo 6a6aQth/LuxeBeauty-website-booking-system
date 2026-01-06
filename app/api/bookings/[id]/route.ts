@@ -10,16 +10,55 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const body = await req.json();
-    const { status } = body as { status?: string };
+    const {
+      name,
+      phone,
+      email,
+      date,
+      timeSlot,
+      services,
+      notes,
+      discountApplied,
+      inspirationPhotos,
+      status
+    } = body;
 
-    const allowedStatuses = ['pending', 'successful', 'failed'];
-    if (!status || !allowedStatuses.includes(status)) {
-      return NextResponse.json({ error: `Invalid or missing status. Allowed: ${allowedStatuses.join(', ')}` }, { status: 400 });
+    // Validate required fields
+    if (!name || !phone || !date || !timeSlot || !Array.isArray(services)) {
+      return NextResponse.json({
+        error: 'Missing required fields: name, phone, date, timeSlot, and services are required'
+      }, { status: 400 });
     }
+
+    // Validate status if provided
+    if (status) {
+      const allowedStatuses = ['pending', 'successful', 'failed'];
+      if (!allowedStatuses.includes(status)) {
+        return NextResponse.json({
+          error: `Invalid status. Allowed: ${allowedStatuses.join(', ')}`
+        }, { status: 400 });
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      name,
+      phone,
+      date,
+      timeSlot,
+      services,
+    };
+
+    // Add optional fields if provided
+    if (email !== undefined) updateData.email = email;
+    if (notes !== undefined) updateData.notes = notes;
+    if (discountApplied !== undefined) updateData.discountApplied = discountApplied;
+    if (Array.isArray(inspirationPhotos)) updateData.inspirationPhotos = inspirationPhotos;
+    if (status) updateData.status = status;
 
     const updated = await prisma.booking.update({
       where: { id },
-      data: { status },
+      data: updateData,
     });
 
     return NextResponse.json(updated, { status: 200 });

@@ -133,6 +133,8 @@ export default function AdminPage() {
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState<Booking | null>(null);
+  const [isEditingBooking, setIsEditingBooking] = useState<Booking | null>(null);
+  const [editingBookingData, setEditingBookingData] = useState<Booking | null>(null);
 
   useEffect(() => setIsClient(true), [])
 
@@ -565,8 +567,8 @@ export default function AdminPage() {
   }, [services, categoryFilter]);
 
   const handleOpenBookingDetails = (booking: Booking) => {
-    // Implement the logic to open booking details
-    console.log("Opening booking details for:", booking);
+    setIsEditingBooking(booking);
+    setEditingBookingData({ ...booking });
   };
 
   const handleDeleteBooking = async () => {
@@ -609,6 +611,34 @@ export default function AdminPage() {
       fetchAdminData();
     } catch (error) {
       toast({ title: 'Error', description: 'Could not update booking status.', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveBooking = async () => {
+    if (!editingBookingData || !isEditingBooking) return;
+
+    try {
+      const response = await fetch(`/api/bookings/${isEditingBooking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingBookingData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update booking');
+      }
+
+      toast({ title: 'Success', description: 'Booking has been updated.' });
+      setIsEditingBooking(null);
+      setEditingBookingData(null);
+      fetchAdminData();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Could not update booking.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -1385,6 +1415,175 @@ export default function AdminPage() {
               className="bg-red-500 text-white rounded-lg hover:bg-red-600"
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!isEditingBooking} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditingBooking(null);
+          setEditingBookingData(null);
+        }
+      }}>
+        <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Edit Booking Details</DialogTitle>
+            <DialogDescription>
+              Edit the booking information for {isEditingBooking?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingBookingData && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingBookingData.name}
+                    onChange={(e) => setEditingBookingData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    placeholder="Customer name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Phone *</Label>
+                  <Input
+                    id="edit-phone"
+                    value={editingBookingData.phone}
+                    onChange={(e) => setEditingBookingData(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                    placeholder="Phone number"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editingBookingData.email || ''}
+                  onChange={(e) => setEditingBookingData(prev => prev ? { ...prev, email: e.target.value } : null)}
+                  placeholder="Email address (optional)"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Date *</Label>
+                  <Calendar
+                    mode="single"
+                    selected={editingBookingData.date ? parseISO(editingBookingData.date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setEditingBookingData(prev => prev ? { ...prev, date: format(date, 'yyyy-MM-dd') } : null);
+                      }
+                    }}
+                    disabled={{ before: new Date() }}
+                    className="rounded-lg border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-timeSlot">Time Slot *</Label>
+                  <Select
+                    value={editingBookingData.timeSlot}
+                    onValueChange={(value) => setEditingBookingData(prev => prev ? { ...prev, timeSlot: value } : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allTimeSlots.map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {slot}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Services *</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                  {services.map((service) => (
+                    <div key={service.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`service-${service.id}`}
+                        checked={editingBookingData.services?.includes(service.id) || false}
+                        onCheckedChange={(checked) => {
+                          setEditingBookingData(prev => {
+                            if (!prev) return null;
+                            const currentServices = prev.services || [];
+                            if (checked) {
+                              return { ...prev, services: [...currentServices, service.id] };
+                            } else {
+                              return { ...prev, services: currentServices.filter(id => id !== service.id) };
+                            }
+                          });
+                        }}
+                      />
+                      <Label htmlFor={`service-${service.id}`} className="text-sm">
+                        {service.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={editingBookingData.notes || ''}
+                  onChange={(e) => setEditingBookingData(prev => prev ? { ...prev, notes: e.target.value } : null)}
+                  placeholder="Additional notes (optional)"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-inspiration-photos">Inspiration Photos</Label>
+                <Textarea
+                  id="edit-inspiration-photos"
+                  value={editingBookingData.inspirationPhotos?.join('\n') || ''}
+                  onChange={(e) => setEditingBookingData(prev => prev ? {
+                    ...prev,
+                    inspirationPhotos: e.target.value.split('\n').filter(url => url.trim())
+                  } : null)}
+                  placeholder="One URL per line (optional)"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-discount"
+                  checked={editingBookingData.discountApplied || false}
+                  onCheckedChange={(checked) => setEditingBookingData(prev => prev ? { ...prev, discountApplied: !!checked } : null)}
+                />
+                <Label htmlFor="edit-discount">30% Discount Applied</Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsEditingBooking(null);
+                setEditingBookingData(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveBooking}
+              className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90"
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
