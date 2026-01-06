@@ -83,12 +83,12 @@ export function ServicesList({ groupedServices }: ServicesListProps) {
                         />
                       </div>
                       <p className="text-gray-600 text-sm italic">
-                        {categoryDescriptions[category]}
+                        {categoryDescriptions[category] || "Explore our curated selection of services in this category, crafted to give you a luxurious, long-lasting finish."}
                       </p>
                     </div>
 
                     <div>
-                      <h2 className="text-3xl font-serif mb-6 capitalize">{category.replace("-", " ")}</h2>
+                      <h2 className="text-3xl font-serif mb-6 capitalize">{category.replace(/-/g, " ")}</h2>
                       <div className="space-y-4">
                         {groupedServices[category].map((service: Service) => (
                           <Card key={service.id} className="border-none shadow-md bg-white/90">

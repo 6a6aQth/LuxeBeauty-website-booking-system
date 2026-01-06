@@ -11,18 +11,40 @@ import React from 'react';
 export default function ServicesPage() {
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   const { data: services = [], isLoading } = useSWR<Service[]>('/api/services', fetcher, { refreshInterval: 2000 });
+  const { data: categories = [] } = useSWR<any[]>('/api/categories', fetcher, { refreshInterval: 0 });
 
   // Group services by category
   const groupedServices = React.useMemo(() => {
-    return (services as Service[]).reduce((acc: Record<string, Service[]>, service: Service) => {
-      const { category } = service;
-      if (!acc[category]) {
-        acc[category] = [];
+    const byCategory: Record<string, Service[]> = {};
+
+    (services as Service[]).forEach((service: Service) => {
+      const key = service.category;
+      if (!key) return;
+      if (!byCategory[key]) {
+        byCategory[key] = [];
       }
-      acc[category].push(service);
-      return acc;
-    }, {} as Record<string, Service[]>);
-  }, [services]);
+      byCategory[key].push(service);
+    });
+
+    // Optionally order categories according to central Category list
+    if (Array.isArray(categories) && categories.length > 0) {
+      const ordered: Record<string, Service[]> = {};
+      categories.forEach((cat: any) => {
+        if (byCategory[cat.name]) {
+          ordered[cat.name] = byCategory[cat.name];
+        }
+      });
+      // Include any legacy categories not present in Category table
+      Object.keys(byCategory).forEach((key) => {
+        if (!ordered[key]) {
+          ordered[key] = byCategory[key];
+        }
+      });
+      return ordered;
+    }
+
+    return byCategory;
+  }, [services, categories]);
 
   return (
     <div>

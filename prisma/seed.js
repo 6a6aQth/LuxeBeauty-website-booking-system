@@ -43,13 +43,65 @@ const serviceImages = {
   'soak-off': '/IMG_5922.png',
 };
 
+const categoryMetadata = {
+  manicure: {
+    description: "Our manicure services are designed to enhance the natural beauty of your hands while ensuring nail health and longevity.",
+    imageUrl: "/IMG_7410.png",
+  },
+  pedicure: {
+    description: "Pamper your feet with our luxurious pedicure treatments that combine relaxation with expert nail care.",
+    imageUrl: "/pedicure.jpg",
+  },
+  refills: {
+    description: "Maintain your beautiful nails with our professional refill services, extending the life of your manicure.",
+    imageUrl: "/IMG_7435.png",
+  },
+  'nail-art': {
+    description: "Express your personality with our creative nail art options, from subtle elegance to bold statements.",
+    imageUrl: "/IMG_5656.png",
+  },
+  'soak-off': {
+    description: "Our gentle soak-off services ensure safe removal of previous applications without damaging your natural nails.",
+    imageUrl: "/IMG_5922.png",
+  },
+};
+
+// Helper to create slug from category name
+function createSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 async function main() {
   console.log('Start seeding...');
+
+  // First, ensure categories exist
+  console.log('Creating/updating categories...');
+  for (const [categoryName, serviceList] of Object.entries(services)) {
+    const slug = createSlug(categoryName);
+    const metadata = categoryMetadata[categoryName] || {};
+    
+    await prisma.category.upsert({
+      where: { slug },
+      update: {
+        name: categoryName,
+        description: metadata.description || null,
+        imageUrl: metadata.imageUrl || null,
+      },
+      create: {
+        name: categoryName,
+        slug: slug,
+        description: metadata.description || null,
+        imageUrl: metadata.imageUrl || null,
+      },
+    });
+    console.log(`Ensured category exists: ${categoryName}`);
+  }
 
   // Clear existing services to avoid duplicates
   await prisma.service.deleteMany();
   console.log('Cleared existing services.');
 
+  // Create services
   for (const [category, serviceList] of Object.entries(services)) {
     for (const service of serviceList) {
       const createdService = await prisma.service.create({

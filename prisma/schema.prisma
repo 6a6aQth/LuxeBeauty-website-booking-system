@@ -68,6 +68,17 @@ model Service {
   isAvailable Boolean  @default(true)
 }
 
+/// Logical service categories (e.g., manicure, pedicure, refills, nail art, soak off)
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model SiteSettings {
   id           String @id @default(cuid())
   priceListUrl String

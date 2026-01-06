@@ -69,6 +69,7 @@ export function BookingForm({
   // SWR fetcher
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   const { data: services = [], isLoading: servicesLoading } = useSWR<Service[]>('/api/services', fetcher, { refreshInterval: 1000 });
+  const { data: categoriesFromApi = [] } = useSWR<any[]>('/api/categories', fetcher, { refreshInterval: 0 });
 
   // Prevent running on first render for services
   const isFirstServices = useRef(true);
@@ -134,11 +135,15 @@ export function BookingForm({
     }
   }, [clearedTimeSlot]);
 
+  // Use centrally managed categories, falling back to categories inferred from services
   const categories = React.useMemo(() => {
+    if (categoriesFromApi && Array.isArray(categoriesFromApi) && categoriesFromApi.length > 0) {
+      return categoriesFromApi.map((c: any) => c.name as string);
+    }
     if (services.length === 0) return [];
     const cats = services.map((s) => s.category);
     return Array.from(new Set(cats));
-  }, [services]);
+  }, [categoriesFromApi, services]);
 
   const filteredServices = React.useMemo(() => {
     if (!selectedCategory) return [];

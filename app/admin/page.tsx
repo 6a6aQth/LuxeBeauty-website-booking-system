@@ -48,6 +48,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 const ADMIN_PASSWORD = 'luxe' // This should be an environment variable in a real app
@@ -59,6 +60,14 @@ interface Service {
   duration: number;
   category: string;
   isAvailable: boolean;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
 }
 
 interface Booking {
@@ -83,21 +92,12 @@ interface UnavailableDate {
   timeSlots: string[];
 }
 
-const serviceCategories = [
-  'all',
-  'manicure',
-  'pedicure',
-  'refills',
-  'nail-art',
-  'soak-off',
-]
-
 const emptyService: Service = {
   id: '',
   name: '',
   description: '',
   duration: 60,
-  category: 'manicure',
+  category: '',
   isAvailable: true,
 }
 
@@ -107,6 +107,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [unavailableDates, setUnavailableDates] = useState<UnavailableDate[]>([])
   const [view, setView] = useState('all') // 'all' or 'upcoming'
   const [searchTerm, setSearchTerm] = useState('')
@@ -125,6 +126,10 @@ export default function AdminPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isClient, setIsClient] = useState(false)
   const [statusFilter, setStatusFilter] = useState('successful') // Add status filter state
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [isDeletingCategory, setIsDeletingCategory] = useState<Category | null>(null)
+  const [manageServicesTab, setManageServicesTab] = useState<'services' | 'categories'>('services')
   const isMobile = useIsMobile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState<Booking | null>(null);
@@ -144,17 +149,34 @@ export default function AdminPage() {
 
     const fetchAdminData = async () => {
       try {
-      const [bookingsRes, unavailableRes, servicesRes, priceListRes] =
+      const [bookingsRes, unavailableRes, servicesRes, priceListRes, categoriesRes] =
         await Promise.all([
           fetch(`/api/bookings?status=${statusFilter}`),
           fetch('/api/unavailable-dates'),
           fetch('/api/services'),
           fetch('/api/price-list'),
+          fetch('/api/categories'),
         ])
 
       if (bookingsRes.ok) setBookings(await bookingsRes.json())
       if (unavailableRes.ok) setUnavailableDates(await unavailableRes.json())
       if (servicesRes.ok) setServices(await servicesRes.json())
+      
+      // Handle categories with better error logging
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json()
+        console.log('Categories fetched:', categoriesData)
+        setCategories(categoriesData)
+      } else {
+        const errorText = await categoriesRes.text()
+        console.error('Categories API error:', categoriesRes.status, errorText)
+        toast({
+          title: 'Warning',
+          description: 'Failed to load categories. Please refresh the page.',
+          variant: 'destructive',
+        })
+      }
+      
       if (priceListRes.ok) {
         const data = await priceListRes.json()
         setPriceListUrl(data.priceListUrl)
@@ -523,12 +545,24 @@ export default function AdminPage() {
     }
   };
 
+  // Categories used to filter services are derived from central Category list
+  const serviceCategories = useMemo(() => {
+    return ['all', ...categories.map((c) => c.name)];
+  }, [categories]);
+
+  // Ensure the current filter is always valid when categories change
+  useEffect(() => {
+    if (!serviceCategories.includes(categoryFilter)) {
+      setCategoryFilter('all');
+    }
+  }, [serviceCategories, categoryFilter]);
+
   const filteredServices = useMemo(() => {
     if (categoryFilter === 'all') {
-      return services
+      return services;
     }
-    return services.filter((service) => service.category === categoryFilter)
-  }, [services, categoryFilter])
+    return services.filter((service) => service.category === categoryFilter);
+  }, [services, categoryFilter]);
 
   const handleOpenBookingDetails = (booking: Booking) => {
     // Implement the logic to open booking details
@@ -575,6 +609,84 @@ export default function AdminPage() {
       fetchAdminData();
     } catch (error) {
       toast({ title: 'Error', description: 'Could not update booking status.', variant: 'destructive' });
+    }
+  };
+
+  const handleOpenCategoryModal = (category: Category | null) => {
+    setEditingCategory(category);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!editingCategory || !editingCategory.name.trim()) {
+      toast({
+        title: "Validation",
+        description: "Category name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { id, name, description, imageUrl } = editingCategory;
+    const url = id ? `/api/categories/${id}` : "/api/categories";
+    const method = id ? "PUT" : "POST";
+
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, imageUrl }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save category");
+      }
+
+      toast({
+        title: "Success",
+        description: `Category has been ${id ? "updated" : "created"}.`,
+      });
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      fetchAdminData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Could not save category.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!isDeletingCategory) return;
+    try {
+      const response = await fetch(`/api/categories/${isDeletingCategory.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Failed to delete category. Make sure no services are using it."
+        );
+      }
+
+      toast({
+        title: "Success",
+        description: "Category has been deleted.",
+      });
+      setIsDeletingCategory(null);
+      fetchAdminData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Could not delete category.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -769,13 +881,33 @@ export default function AdminPage() {
           
           <Card className="rounded-2xl shadow-soft">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Settings/> Manage Services</CardTitle>
-              <Button onClick={() => handleOpenServiceModal(null)} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2 self-end sm:self-center">
-                <PlusCircle className="w-5 h-5" />
-                Add Service
-              </Button>
+              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Settings/> Manage Services & Categories</CardTitle>
+              {manageServicesTab === 'services' ? (
+                <Button onClick={() => handleOpenServiceModal(null)} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2 self-end sm:self-center">
+                  <PlusCircle className="w-5 h-5" />
+                  Add Service
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setIsCategoryModalOpen(true);
+                  }}
+                  className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2 self-end sm:self-center"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  Add Category
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
+              <Tabs value={manageServicesTab} onValueChange={(v) => setManageServicesTab(v as 'services' | 'categories')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="services">Services</TabsTrigger>
+                  <TabsTrigger value="categories">Categories</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="services" className="mt-0">
               {isMobile ? (
                 <div className="mb-4">
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -858,11 +990,81 @@ export default function AdminPage() {
                   </div>
                 )}
                 </ScrollArea>
-              </CardContent>
-            </Card>
+                </TabsContent>
+                
+                <TabsContent value="categories" className="mt-0">
+                  {categories.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-sm text-gray-500 mb-4">
+                        No categories yet. Add categories like "manicure", "pedicure", "refills", "nail art", or "soak off" to start organizing your services.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          setEditingCategory(null);
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90"
+                      >
+                        <PlusCircle className="w-4 h-4 mr-2" />
+                        Create Your First Category
+                      </Button>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[400px] pr-2">
+                      <div className="space-y-3">
+                        {categories.map((cat) => (
+                          <div
+                            key={cat.id}
+                            className="flex items-start justify-between p-3 bg-gray-100 rounded-xl gap-2"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold truncate">{cat.name}</p>
+                              {cat.description && (
+                                <p
+                                  className="text-xs text-gray-600 truncate mt-1"
+                                  title={cat.description}
+                                >
+                                  {cat.description}
+                                </p>
+                              )}
+                              {cat.imageUrl && (
+                                <p className="text-xs text-gray-400 mt-1">Image: {cat.imageUrl}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-500 hover:text-blue-500 rounded-full"
+                                onClick={() => {
+                                  setEditingCategory(cat);
+                                  setIsCategoryModalOpen(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-500 hover:text-red-500 rounded-full"
+                                onClick={() => setIsDeletingCategory(cat)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-8">
+
           <Card className="rounded-2xl shadow-soft">
               <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><CalendarIcon /> Availability</CardTitle>
@@ -1016,13 +1218,46 @@ export default function AdminPage() {
           <div className="space-y-4 py-4">
             <Input placeholder="Service Name" value={editingService?.name || ''} onChange={(e) => setEditingService(s => s ? {...s, name: e.target.value} : null)} />
             <Textarea placeholder="Description" value={editingService?.description || ''} onChange={(e) => setEditingService(s => s ? {...s, description: e.target.value} : null)} />
-            <Input type="number" placeholder="Duration (minutes)" value={editingService?.duration || ''} onChange={(e) => setEditingService(s => s ? {...s, duration: parseInt(e.target.value)} : null)} />
-            <Select value={editingService?.category} onValueChange={(value) => setEditingService(s => s ? {...s, category: value} : null)}>
-              <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-              <SelectContent>
-                {serviceCategories.filter(c => c !== 'all').map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('-', ' ')}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input
+              type="number"
+              placeholder="Duration (minutes)"
+              value={editingService?.duration || ''}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                setEditingService(s => s ? {...s, duration: isNaN(value) ? 0 : value} : null)
+              }}
+            />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Category</Label>
+              {categories.length === 0 ? (
+                <p className="text-xs text-gray-500">
+                  No categories yet. Switch to the "Categories" tab above to create your first category, then assign it to services here.
+                </p>
+              ) : (
+                <Select
+                  value={editingService?.category || ""}
+                  onValueChange={(value) =>
+                    setEditingService((s) =>
+                      s ? { ...s, category: value } : null
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-xs text-gray-500">
+                Categories are managed centrally and used across the booking form and services page.
+              </p>
+            </div>
           </div>
           <DialogFooter className="sm:justify-between">
             {editingService?.id && (
@@ -1038,6 +1273,71 @@ export default function AdminPage() {
               </Button>
             )}
             <Button onClick={handleSaveService} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90">Save Service</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCategoryModalOpen} onOpenChange={(open) => {
+        setIsCategoryModalOpen(open);
+        if (!open) {
+          // Only reset editingCategory when closing, not when opening
+          setEditingCategory(null);
+        }
+      }}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">
+              {editingCategory?.id ? "Edit Category" : "Add New Category"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Category Name (e.g. manicure)"
+              value={editingCategory?.name || ""}
+              onChange={(e) =>
+                setEditingCategory((c) =>
+                  c ? { ...c, name: e.target.value } : { id: "", slug: "", name: e.target.value, description: "", imageUrl: "" }
+                )
+              }
+            />
+            <Textarea
+              placeholder="Optional description shown on the services page"
+              value={editingCategory?.description || ""}
+              onChange={(e) =>
+                setEditingCategory((c) =>
+                  c ? { ...c, description: e.target.value } : null
+                )
+              }
+            />
+            <Input
+              placeholder="Image URL (e.g. /IMG_7410.png)"
+              value={editingCategory?.imageUrl || ""}
+              onChange={(e) =>
+                setEditingCategory((c) =>
+                  c ? { ...c, imageUrl: e.target.value } : { id: "", slug: "", name: "", description: "", imageUrl: e.target.value }
+                )
+              }
+            />
+          </div>
+          <DialogFooter className="sm:justify-between">
+            {editingCategory?.id && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setIsCategoryModalOpen(false);
+                  setIsDeletingCategory(editingCategory);
+                }}
+                className="bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Delete Category
+              </Button>
+            )}
+            <Button
+              onClick={handleSaveCategory}
+              className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90"
+            >
+              Save Category
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1064,6 +1364,28 @@ export default function AdminPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsDeletingBooking(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteBooking} className="bg-red-500 text-white rounded-lg hover:bg-red-600">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!isDeletingCategory} onOpenChange={() => setIsDeletingCategory(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl">Are you sure?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the "{isDeletingCategory?.name}" category.
+              You must remove or reassign any services using this category first.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsDeletingCategory(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteCategory}
+              className="bg-red-500 text-white rounded-lg hover:bg-red-600"
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
