@@ -23,6 +23,7 @@ const navLinks = [
   { href: "/booking", label: "Booking" },
   { href: "/lookup", label: "Reschedule" },
   { href: "/contact", label: "Contact" },
+  { href: "/policies", label: "Policies" },
 ]
 
 const Header = () => {

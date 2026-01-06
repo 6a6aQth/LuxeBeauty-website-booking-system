@@ -83,9 +83,9 @@ export function StudioPolicies() {
   )
 }
 
-export function StudioPoliciesContent() {
+export function StudioPoliciesContent({ scrollable = true }: { scrollable?: boolean }) {
   return (
-    <div className="max-h-[60vh] overflow-y-auto pr-4 text-gray-800">
+    <div className={`${scrollable ? 'max-h-[60vh] overflow-y-auto pr-4' : ''} text-gray-800`}>
       <PolicySection title="1. Booking & Appointments">
         <ul className="list-disc pl-5">
           <li>A non-refundable booking fee of K10,000 is required to secure your appointment. This amount will be credited toward your total service cost.</li>
