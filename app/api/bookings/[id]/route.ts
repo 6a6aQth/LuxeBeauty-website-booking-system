@@ -23,11 +23,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       status
     } = body;
 
-    // Validate required fields
-    if (!name || !phone || !date || !timeSlot || !Array.isArray(services)) {
-      return NextResponse.json({
-        error: 'Missing required fields: name, phone, date, timeSlot, and services are required'
-      }, { status: 400 });
+    // Validate if fields are provided
+    if (name !== undefined && !name) {
+      return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 });
+    }
+    if (phone !== undefined && !phone) {
+      return NextResponse.json({ error: 'Phone cannot be empty' }, { status: 400 });
+    }
+    if (date !== undefined && !date) {
+      return NextResponse.json({ error: 'Date cannot be empty' }, { status: 400 });
+    }
+    if (timeSlot !== undefined && !timeSlot) {
+      return NextResponse.json({ error: 'Time slot cannot be empty' }, { status: 400 });
+    }
+    if (services !== undefined && !Array.isArray(services)) {
+      return NextResponse.json({ error: 'Services must be an array' }, { status: 400 });
     }
 
     // Validate status if provided
@@ -41,13 +51,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Prepare update data
-    const updateData: any = {
-      name,
-      phone,
-      date,
-      timeSlot,
-      services,
-    };
+    const updateData: any = {};
+
+    // Add fields if provided in body
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (date !== undefined) updateData.date = date;
+    if (timeSlot !== undefined) updateData.timeSlot = timeSlot;
+    if (services !== undefined) updateData.services = services;
 
     // Add optional fields if provided
     if (email !== undefined) updateData.email = email;

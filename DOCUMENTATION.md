@@ -223,6 +223,49 @@ The application exposes several API endpoints built with Next.js API Routes.
     *   **Request Body**: JSON object with `date` (string, e.g., "YYYY-MM-DD") and `slots` (array of time slot strings, e.g., ["09:00", "10:00"]).
     *   **Response**: Updated unavailable date object.
 
+## 10. Webhook Documentation
+
+The application implements a secure webhook to handle asynchronous payment notifications from PayChangu.
+
+### PayChangu Webhook
+*   **Endpoint**: `/api/webhook/paychangu`
+*   **Method**: `POST`
+*   **Environment Variable**: `PAYCHANGU_WEBHOOK_SECRET` (Required for signature verification)
+
+#### Security & Authentication
+The webhook implementation uses **HMAC SHA-256** signature verification to ensure requests originate from PayChangu.
+1.  The raw request body is read.
+2.  A HMAC signature is computed using the `PAYCHANGU_WEBHOOK_SECRET`.
+3.  The computed signature is compared against the `signature` header provided in the request.
+4.  If signatures do not match, the request is rejected with a **401 Unauthorized** status.
+
+#### Expected Workflow
+1.  **Event Reception**: Receives a `POST` request from PayChangu.
+2.  **Signature Verification**: Validates the payload integrity.
+3.  **Event Filtering**: Only processes events where `eventType === 'payment.success'` or `status === 'success'`.
+4.  **Booking Lookup**: Matches the `tx_ref` from the payload to a `ticketId` in the database.
+5.  **Status Update**: Marks the booking as `successful` and calculates loyalty discount eligibility.
+6.  **SMS Confirmation**: Triggers a non-blocking SMS confirmation to the client via `@/lib/sms`.
+7.  **Event Logging**: Records the event details using `logPaymentEvent` for auditing and troubleshooting.
+
+#### Payload Structure (Simplified)
+```json
+{
+  "event": "payment.success",
+  "data": {
+    "status": "success",
+    "tx_ref": "TX-12345",
+    "amount": 5000,
+    "currency": "MWK",
+    "meta": {
+      "phone": "+265...",
+      "date": "2024-05-20",
+      "timeSlot": "10:00"
+    }
+  }
+}
+```
+
 ## 9. Common Issues & Troubleshooting
 
 *   **Database Connection Errors:**

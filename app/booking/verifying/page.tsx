@@ -84,35 +84,60 @@ function VerifyingPayment() {
     }
 
     const verifyPaymentAndCreateBooking = async () => {
-      try {
-        const verificationRes = await fetch('/api/verify-payment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tx_ref, formData }),
-        });
+      const maxRetries = 10;
+      const pollingInterval = 3000; // 3 seconds
 
-        if (!verificationRes.ok) {
-          const errorData = await verificationRes.json();
-          throw new Error(errorData.error || 'Payment verification failed on the server.');
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const verificationRes = await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tx_ref, formData }),
+          });
+
+          if (verificationRes.status === 202) {
+            // Still processing, wait and retry
+            console.log(`[VERIFY-PAGE] Payment still processing, attempt ${attempt}/${maxRetries}...`);
+            await new Promise(resolve => setTimeout(resolve, pollingInterval));
+            continue;
+          }
+
+          if (!verificationRes.ok) {
+            const errorData = await verificationRes.json();
+            throw new Error(errorData.error || 'Payment verification failed on the server.');
+          }
+
+          const newBooking = await verificationRes.json();
+          const bookingDetails = {
+            ...newBooking,
+            fee: "K10,000 (Paid)", // Adjusted amount
+          };
+
+          // Save final details for the confirmation page
+          sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
+          setLoaderStates(successStates);
+          setFinalStatus('success');
+          setStatus('success');
+          return; // Exit successfully
+        } catch (error: any) {
+          // If it's the last attempt or an explicit error error
+          if (attempt === maxRetries || error.message.includes('failed') || error.message.includes('expired')) {
+            setErrorMessage(error.message || 'An unknown error occurred during verification.');
+            setLoaderStates(failStates);
+            setFinalStatus('failed');
+            setStatus('failed');
+            return;
+          }
+          // For other errors, wait and retry
+          await new Promise(resolve => setTimeout(resolve, pollingInterval));
         }
-
-        const newBooking = await verificationRes.json();
-        const bookingDetails = {
-          ...newBooking,
-          fee: "K10,000 (Paid)", // Adjusted amount
-        };
-
-        // Save final details for the confirmation page
-        sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
-        setLoaderStates(successStates);
-        setFinalStatus('success');
-        setStatus('success');
-      } catch (error: any) {
-        setErrorMessage(error.message || 'An unknown error occurred during verification.');
-        setLoaderStates(failStates);
-        setFinalStatus('failed');
-        setStatus('failed');
       }
+
+      // If we exhausted retries
+      setErrorMessage('Verification timed out. If you were debited, your booking will be confirmed automatically via webhook within a few minutes.');
+      setLoaderStates(failStates);
+      setFinalStatus('failed');
+      setStatus('failed');
     };
 
     verifyPaymentAndCreateBooking();
@@ -152,14 +177,14 @@ function VerifyingPayment() {
 
 // The main page export provides the Suspense boundary
 export default function VerifyingPaymentPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-brand-pink mb-4" />
-              <h1 className="text-2xl font-semibold text-gray-800">Loading...</h1>
-            </div>
-        }>
-            <VerifyingPayment />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-pink mb-4" />
+        <h1 className="text-2xl font-semibold text-gray-800">Loading...</h1>
+      </div>
+    }>
+      <VerifyingPayment />
+    </Suspense>
+  )
 } 

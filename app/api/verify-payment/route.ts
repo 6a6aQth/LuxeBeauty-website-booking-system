@@ -8,16 +8,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { tx_ref, formData } = body;
 
-    console.log('🔍 [PAYCHANGU-VERIFY] Starting payment verification:', { 
-      tx_ref, 
+    console.log('🔍 [PAYCHANGU-VERIFY] Starting payment verification:', {
+      tx_ref,
       customerName: formData?.name,
       customerPhone: formData?.phone,
       timestamp: new Date().toISOString()
     });
 
     if (!tx_ref || !formData) {
-      console.error('❌ [PAYCHANGU-VERIFY] Missing data:', { 
-        hasTxRef: !!tx_ref, 
+      console.error('❌ [PAYCHANGU-VERIFY] Missing data:', {
+        hasTxRef: !!tx_ref,
         hasFormData: !!formData,
         timestamp: new Date().toISOString()
       });
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     const verificationUrl = `https://api.paychangu.com/verify-payment/${tx_ref}`;
-    
+
     // Retry logic with exponential backoff
     let verificationData = null;
     let lastError = null;
@@ -49,15 +49,15 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString()
         });
         await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_attempt', attempt, message: 'Starting verify attempt' });
-        
-    const verificationResponse = await fetch(verificationUrl, {
-      headers: {
-        'Authorization': `Bearer ${secretKey}`
-      }
-    });
 
-    if (!verificationResponse.ok) {
-      const errorBody = await verificationResponse.json().catch(() => ({ message: 'Could not parse error response from PayChangu.' }));
+        const verificationResponse = await fetch(verificationUrl, {
+          headers: {
+            'Authorization': `Bearer ${secretKey}`
+          }
+        });
+
+        if (!verificationResponse.ok) {
+          const errorBody = await verificationResponse.json().catch(() => ({ message: 'Could not parse error response from PayChangu.' }));
           console.error(`❌ [PAYCHANGU-VERIFY] API Error on attempt ${attempt}:`, {
             attempt,
             maxRetries,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
             timestamp: new Date().toISOString()
           });
           await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_error', attempt, httpStatus: verificationResponse.status, message: 'Verify HTTP error', payload: errorBody });
-          
+
           if (attempt === maxRetries) {
             console.error(`💥 [PAYCHANGU-VERIFY] All ${maxRetries} attempts failed for tx_ref: ${tx_ref}`, {
               tx_ref,
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_failed', attempt, message: 'All verify attempts failed' });
             return NextResponse.json({ error: 'Failed to verify transaction with payment provider after multiple attempts.' }, { status: 502 });
           }
-          
+
           // Wait before retry with exponential backoff
           const delay = baseDelay * Math.pow(2, attempt - 1);
           console.log(`⏳ [PAYCHANGU-VERIFY] Waiting ${delay}ms before retry ${attempt + 1} for tx_ref: ${tx_ref}`);
@@ -98,10 +98,10 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString()
         });
         await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_success', attempt, status: verificationData.status, payload: verificationData });
-        
+
         // If we get here, the request was successful
         break;
-        
+
       } catch (error: any) {
         console.error(`💥 [PAYCHANGU-VERIFY] Network/parsing error on attempt ${attempt}:`, {
           attempt,
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
           timestamp: new Date().toISOString()
         });
         lastError = error;
-        
+
         if (attempt === maxRetries) {
           console.error(`💥 [PAYCHANGU-VERIFY] All ${maxRetries} attempts failed due to network errors for tx_ref: ${tx_ref}`, {
             tx_ref,
@@ -120,9 +120,9 @@ export async function POST(req: NextRequest) {
             finalError: lastError.message,
             timestamp: new Date().toISOString()
           });
-      await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_failed_network', attempt, message: 'All verify attempts failed (network)' });
-      return NextResponse.json({ error: 'Failed to verify transaction with payment provider.' }, { status: 502 });
-    }
+          await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_failed_network', attempt, message: 'All verify attempts failed (network)' });
+          return NextResponse.json({ error: 'Failed to verify transaction with payment provider.' }, { status: 502 });
+        }
 
         // Wait before retry with exponential backoff
         const delay = baseDelay * Math.pow(2, attempt - 1);
@@ -132,61 +132,52 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if the transaction was successful according to PayChangu's data
-    if (verificationData.status !== 'success' || verificationData.data.status !== 'success') {
-        console.warn(`⚠️ [PAYCHANGU-VERIFY] Payment not successful according to PayChangu for tx_ref: ${tx_ref}`, {
-          tx_ref,
-          paychanguStatus: verificationData.status,
-          paychanguDataStatus: verificationData.data.status,
-          paychanguMessage: verificationData.message,
-          paychanguAmount: verificationData.data?.amount,
-          paychanguCurrency: verificationData.data?.currency,
-          timestamp: new Date().toISOString()
-        });
-        await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_provider_not_success', status: verificationData.status, message: 'Provider returned not-success', payload: verificationData });
+    if (verificationData.status !== 'success' || (verificationData.data.status !== 'success' && verificationData.data.status !== 'paid')) {
+      console.warn(`⚠️ [PAYCHANGU-VERIFY] Payment not yet successful according to PayChangu for tx_ref: ${tx_ref}`, {
+        tx_ref,
+        paychanguStatus: verificationData.status,
+        paychanguDataStatus: verificationData.data?.status,
+        paychanguMessage: verificationData.message,
+        timestamp: new Date().toISOString()
+      });
+      await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_provider_pending', status: verificationData.status, message: 'Provider returned not-success (pending)', payload: verificationData });
 
-        // Set booking status to 'failed'
+      // IMPORTANT: We DO NOT mark the booking as 'failed' here. 
+      // We want to give the webhook or subsequent pulls a chance.
+      // If it's explicitly 'failed' or 'cancelled' from Paychangu, we could, 
+      // but often 'pending' just means we beat the webhook.
+
+      if (verificationData.data?.status === 'failed' || verificationData.data?.status === 'expired') {
         await prisma.booking.update({
           where: { ticketId: tx_ref },
           data: { status: 'failed' },
         });
-        await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_mark_failed', status: 'failed', message: 'Marked failed after provider not-success' });
+        await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_mark_failed', status: 'failed', message: 'Marked failed after provider explicit failure' });
+        return NextResponse.json({ error: 'Payment failed or expired according to provider.' }, { status: 400 });
+      }
 
-        console.log(`❌ [PAYCHANGU-VERIFY] Booking status updated to 'failed' for tx_ref: ${tx_ref}`, {
-          tx_ref,
-          newStatus: 'failed',
-          timestamp: new Date().toISOString()
-        });
-
-        return NextResponse.json({ error: 'Payment not successful according to PayChangu.' }, { status: 400 });
+      // Return a 'processing' status to the frontend instead of an error
+      return NextResponse.json({ status: 'processing', message: 'Payment is still being processed.' }, { status: 202 });
     }
 
     // Optional but recommended: Verify the amount paid is what you expect
     const expectedAmount = 10000; // The amount in MWK for the deposit
     if (verificationData.data.amount < expectedAmount) {
-        console.warn(`⚠️ [PAYCHANGU-VERIFY] Insufficient payment amount for tx_ref: ${tx_ref}`, {
-          tx_ref,
-          expectedAmount,
-          actualAmount: verificationData.data.amount,
-          currency: verificationData.data.currency,
-          timestamp: new Date().toISOString()
-        });
-        await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_insufficient_amount', status: 'failed', message: 'Insufficient amount', payload: { expectedAmount, actualAmount: verificationData.data.amount } });
+      console.warn(`⚠️ [PAYCHANGU-VERIFY] Insufficient payment amount for tx_ref: ${tx_ref}`, {
+        tx_ref,
+        expectedAmount,
+        actualAmount: verificationData.data.amount,
+        currency: verificationData.data.currency,
+        timestamp: new Date().toISOString()
+      });
+      await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_insufficient_amount', status: 'pending', message: 'Insufficient amount detected', payload: { expectedAmount, actualAmount: verificationData.data.amount } });
 
-        // Set booking status to 'failed'
-        await prisma.booking.update({
-          where: { ticketId: tx_ref },
-          data: { status: 'failed' },
-        });
-        await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_mark_failed', status: 'failed', message: 'Marked failed due to insufficient amount' });
+      // Again, don't mark as failed immediately if there's any ambiguity, 
+      // but here the amount is definitively low. However, to be safe and avoid 
+      // blocking a potentially corrected webhook, we just return an error to the user
+      // without necessarily corrupting the DB state if they want to try verifying again.
 
-        console.log(`❌ [PAYCHANGU-VERIFY] Booking status updated to 'failed' due to insufficient amount for tx_ref: ${tx_ref}`, {
-          tx_ref,
-          newStatus: 'failed',
-          reason: 'insufficient_amount',
-          timestamp: new Date().toISOString()
-        });
-
-        return NextResponse.json({ error: `Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}` }, { status: 400 });
+      return NextResponse.json({ error: `Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}` }, { status: 400 });
     }
 
     // Loyalty Program Logic
@@ -202,16 +193,16 @@ export async function POST(req: NextRequest) {
 
     // Calculate loyalty discount eligibility - count existing successful bookings for this phone
     // Exclude the current booking from the count since it's not yet marked as successful
-    const existingSuccessfulBookingsCount = await prisma.booking.count({ 
-      where: { 
-        phone: formData.phone, 
+    const existingSuccessfulBookingsCount = await prisma.booking.count({
+      where: {
+        phone: formData.phone,
         status: 'successful',
         // Exclude the current booking from the count
         NOT: { ticketId: tx_ref }
-      } 
+      }
     });
     const isEligibleForDiscount = (existingSuccessfulBookingsCount + 1) % 6 === 0;
-    
+
     console.log(`🎯 [PAYCHANGU-VERIFY] Loyalty discount calculation for tx_ref: ${tx_ref}`, {
       tx_ref,
       customerPhone: formData.phone,
