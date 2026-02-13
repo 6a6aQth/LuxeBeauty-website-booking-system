@@ -1226,7 +1226,7 @@ export default function AdminPage() {
           <div className="space-y-3">
             <Label className="text-base font-medium text-gray-900">Unavailable Time Slots</Label>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-2">
-              {allTimeSlots.map((slot) => {
+              {(selectedDate ? getSlotsForDate(selectedDate) : allTimeSlots).map((slot) => {
                 const isBooked = bookedTimeSlots.includes(slot);
                 const isManagedUnavailable = managedSlots.includes(slot);
                 return (
@@ -1510,7 +1510,7 @@ export default function AdminPage() {
                       <SelectValue placeholder="Select time slot" />
                     </SelectTrigger>
                     <SelectContent>
-                      {allTimeSlots.map((slot) => (
+                      {(editingBookingData.date ? getSlotsForDate(new Date(editingBookingData.date)) : allTimeSlots).map((slot) => (
                         <SelectItem key={slot} value={slot}>
                           {slot}
                         </SelectItem>
