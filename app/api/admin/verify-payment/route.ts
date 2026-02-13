@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { confirmBooking } from '@/lib/booking-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -100,22 +99,39 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
 
-    // Update booking based on PayChangu response using the unified service
+    // Update booking based on PayChangu response
     let updatedBooking;
     if (verificationData.status === 'success' && verificationData.data.status === 'success') {
-      try {
-        updatedBooking = await confirmBooking({ ticketId: tx_ref }, 'admin_reverify');
-        console.log('✅ [PAYCHANGU-ADMIN] Booking confirmed via unified service:', { tx_ref });
-      } catch (confError: any) {
-        console.error('❌ [PAYCHANGU-ADMIN] Confirmation service failed:', confError.message);
-        return NextResponse.json({ error: 'PayChangu confirmed payment but final booking update failed.' }, { status: 500 });
-      }
+      updatedBooking = await prisma.booking.update({
+        where: { ticketId: tx_ref },
+        data: { status: 'successful' }
+      });
+
+      console.log('✅ [PAYCHANGU-ADMIN] Booking status updated to successful:', {
+        tx_ref,
+        bookingId: updatedBooking.id,
+        oldStatus: booking.status,
+        newStatus: 'successful',
+        paychanguAmount: verificationData.data.amount,
+        paychanguCurrency: verificationData.data.currency,
+        timestamp: new Date().toISOString()
+      });
     } else {
       updatedBooking = await prisma.booking.update({
         where: { ticketId: tx_ref },
         data: { status: 'failed' }
       });
-      console.log('❌ [PAYCHANGU-ADMIN] Booking status updated to failed:', { tx_ref });
+
+      console.log('❌ [PAYCHANGU-ADMIN] Booking status updated to failed:', {
+        tx_ref,
+        bookingId: updatedBooking.id,
+        oldStatus: booking.status,
+        newStatus: 'failed',
+        paychanguStatus: verificationData.status,
+        paychanguDataStatus: verificationData.data?.status,
+        paychanguMessage: verificationData.message,
+        timestamp: new Date().toISOString()
+      });
     }
 
     console.log('🎉 [PAYCHANGU-ADMIN] Admin verification completed:', {

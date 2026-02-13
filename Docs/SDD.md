@@ -352,10 +352,6 @@ Issues are ranked by **severity × effort** to produce a recommended execution o
 - **Issue:** User stuck after payment failure despite possible debit.
 - **Target:** Add "Verification Delayed" UI with Ticket ID and contact info.
 
-#### 5.2.5 Unify Confirmation Logic & Reconciliation (Bug #3)
-- **Issue:** Inconsistent manual updates and silent API failures.
-- **Target:** Extract `lib/booking-service.ts` for all status transitions and add an admin "Re-verify with PayChangu" button to reconcile stuck payments.
-
 ### 5.3 Phase 1: Security & Correctness (1-2 days)
 
 #### 5.2.1 Fix Admin Authentication

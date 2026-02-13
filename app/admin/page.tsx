@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ShineBorder } from "@/components/ui/shine-border";
 import { WavyBackground } from "@/components/ui/wavy-background";
-import { PlusCircle, Edit, Trash2, Calendar as CalendarIcon, LogOut, Search, UploadCloud, Send, Sun, Moon, Settings, Users, Briefcase, Mail, RefreshCcw, RefreshCw, Image as ImageIcon } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Calendar as CalendarIcon, LogOut, Search, UploadCloud, Send, Sun, Moon, Settings, Users, Briefcase, Mail } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -625,37 +625,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleReverifyPayment = async (booking: Booking) => {
-    try {
-      const response = await fetch('/api/admin/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tx_ref: booking.ticketId,
-          adminPassword: ADMIN_PASSWORD // Using the local constant for now
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
-
-      toast({
-        title: 'Verification Complete',
-        description: `Status updated to: ${data.booking.status}`,
-      });
-      fetchAdminData();
-    } catch (error: any) {
-      toast({
-        title: 'Verification Error',
-        description: error.message || 'Could not verify payment with PayChangu.',
-        variant: 'destructive'
-      });
-    }
-  };
-
   const handleSaveBooking = async () => {
     if (!editingBookingData || !isEditingBooking) {
       console.error('Missing booking data or editing state');
@@ -933,21 +902,12 @@ export default function AdminPage() {
                           <Edit className="mr-2 h-4 w-4" /> Edit Details
                         </Button>
                         {booking.status === 'pending' && (
-                          <div className="flex flex-col gap-2 flex-1">
-                            <Button
-                              className="w-full bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                              onClick={() => handleMarkSuccessful(booking)}
-                            >
-                              Mark Successful
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="w-full border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-xs"
-                              onClick={() => handleReverifyPayment(booking)}
-                            >
-                              <RefreshCcw className="mr-1 h-3 w-3" /> Re-verify with PayChangu
-                            </Button>
-                          </div>
+                          <Button
+                            className="flex-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            onClick={() => handleMarkSuccessful(booking)}
+                          >
+                            Mark Successful
+                          </Button>
                         )}
                         <Button
                           variant="destructive"

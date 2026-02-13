@@ -59,27 +59,6 @@
 
 ---
 
-### 0.5 Unify Booking Confirmation Logic
-
-> **Risk:** 🟠 High | **Dep:** None
-
-  0.5.1 Extract shared confirmation logic (status update, SMS, loyalty) into `lib/booking-service.ts`.
-  — **Files:** `lib/booking-service.ts` [NEW]
-
-  0.5.2 refactor `PATCH /api/bookings/[id]` and payment verification routes to use the shared service.
-  — **Files:** `app/api/bookings/[id]/route.ts`, `app/api/verify-payment/route.ts`, `app/api/webhook/paychangu/route.ts`
-
----
-
-### 0.6 Admin Reconciliation Tool
-
-> **Risk:** 🟢 Low | **Dep:** 0.5
-
-  0.6.1 Add "Re-verify with PayChangu" button to Admin dashboard for `pending` bookings.
-  — **Files:** `app/admin/page.tsx`
-
----
-
 ## Phase 1 — Stabilization & Build Safety
 
 **Objective:** Eliminate build-time suppression of errors and establish a verifiable baseline. No refactor can be trusted if the compiler is muzzled.
