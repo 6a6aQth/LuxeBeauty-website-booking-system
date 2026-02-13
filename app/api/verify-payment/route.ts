@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { sendBookingSMS } from '@/lib/sms';
 import { logPaymentEvent } from '@/lib/paymentLogger';
+import { confirmBooking } from '@/lib/booking-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -180,96 +180,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Payment amount incorrect. Expected at least ${expectedAmount}, but got ${verificationData.data.amount}` }, { status: 400 });
     }
 
-    // Loyalty Program Logic
-    const booking = await prisma.booking.findUnique({ where: { ticketId: tx_ref } });
-    if (!booking) {
-      console.error(`❌ [PAYCHANGU-VERIFY] Booking not found in database for tx_ref: ${tx_ref}`, {
-        tx_ref,
-        timestamp: new Date().toISOString()
-      });
-      await logPaymentEvent({ txRef: tx_ref, eventType: 'verify_no_booking', message: 'Booking not found' });
-      return NextResponse.json({ error: 'Booking not found for this transaction reference.' }, { status: 404 });
-    }
-
-    // Calculate loyalty discount eligibility - count existing successful bookings for this phone
-    // Exclude the current booking from the count since it's not yet marked as successful
-    const existingSuccessfulBookingsCount = await prisma.booking.count({
-      where: {
-        phone: formData.phone,
-        status: 'successful',
-        // Exclude the current booking from the count
-        NOT: { ticketId: tx_ref }
-      }
-    });
-    const isEligibleForDiscount = (existingSuccessfulBookingsCount + 1) % 6 === 0;
-
-    console.log(`🎯 [PAYCHANGU-VERIFY] Loyalty discount calculation for tx_ref: ${tx_ref}`, {
-      tx_ref,
-      customerPhone: formData.phone,
-      existingSuccessfulBookingsCount,
-      newBookingNumber: existingSuccessfulBookingsCount + 1,
-      isEligibleForDiscount,
-      discountLogic: `(${existingSuccessfulBookingsCount} + 1) % 6 === 0`,
-      currentBookingDiscountApplied: booking.discountApplied,
-      willUpdateDiscountApplied: isEligibleForDiscount,
-      timestamp: new Date().toISOString()
-    });
-
-    // Update booking status to 'successful'
-    const updatedBooking = await prisma.booking.update({
-      where: { ticketId: tx_ref },
-      data: {
-        status: 'successful',
-        discountApplied: isEligibleForDiscount,
-      },
-    });
-    await logPaymentEvent({ txRef: tx_ref, bookingId: updatedBooking.id, eventType: 'verify_mark_success', status: 'successful', message: 'Marked booking successful' });
-
-    console.log(`✅ [PAYCHANGU-VERIFY] Booking status updated to 'successful' for tx_ref: ${tx_ref}`, {
-      tx_ref,
-      customerName: formData.name,
-      customerPhone: formData.phone,
-      bookingDate: formData.date,
-      bookingTime: formData.timeSlot,
-      newStatus: 'successful',
-      discountApplied: updatedBooking.discountApplied,
-      timestamp: new Date().toISOString()
-    });
-
-    // Send SMS confirmation (non-blocking)
+    // Use the unified confirmation service to handle status update, loyalty, SMS, and logging
     try {
-      await sendBookingSMS(
-        formData.phone,
-        `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${formData.date} at ${formData.timeSlot}.`
-      );
-      console.log(`📱 [PAYCHANGU-VERIFY] SMS confirmation sent for tx_ref: ${tx_ref}`, {
-        tx_ref,
-        customerPhone: formData.phone,
-        smsContent: `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${formData.date} at ${formData.timeSlot}.`,
-        timestamp: new Date().toISOString()
-      });
-    } catch (smsError: any) {
-      console.error(`❌ [PAYCHANGU-VERIFY] SMS sending failed for tx_ref: ${tx_ref}`, {
-        tx_ref,
-        customerPhone: formData.phone,
-        smsError: smsError.message,
-        timestamp: new Date().toISOString()
-      });
+      const updatedBooking = await confirmBooking({ ticketId: tx_ref }, 'user_verify');
+      return NextResponse.json(updatedBooking);
+    } catch (confError: any) {
+      console.error(`❌ [PAYCHANGU-VERIFY] Confirmation service failed for tx_ref: ${tx_ref}`, confError.message);
+      return NextResponse.json({ error: 'Payment verified but final booking update failed. Please contact us.' }, { status: 500 });
     }
-
-    console.log(`🎉 [PAYCHANGU-VERIFY] Payment verification completed successfully for tx_ref: ${tx_ref}`, {
-      tx_ref,
-      customerName: formData.name,
-      customerPhone: formData.phone,
-      bookingDate: formData.date,
-      bookingTime: formData.timeSlot,
-      paychanguAmount: verificationData.data.amount,
-      paychanguCurrency: verificationData.data.currency,
-      finalStatus: 'successful',
-      timestamp: new Date().toISOString()
-    });
-
-    return NextResponse.json(updatedBooking);
 
   } catch (error: any) {
     console.error(`💥 [PAYCHANGU-VERIFY] Unexpected error during verification:`, {

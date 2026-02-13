@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logPaymentEvent } from '@/lib/paymentLogger';
+import { getSlotsForDate } from '@/lib/time-slots';
 
 export async function POST(req: Request) {
   try {
     const { formData, loyaltyDiscountEligible, amount, callback_url, return_url } = await req.json();
+
+    // SERVER-SIDE VALIDATION: Ensure the requested time slot is actually valid for the selected date
+    // This prevents "ghost" slots like Friday 3PM which don't exist in the system logic.
+    if (formData.date && formData.timeSlot) {
+      const bookingDate = new Date(formData.date);
+      const possibleSlots = getSlotsForDate(bookingDate);
+
+      if (!possibleSlots.includes(formData.timeSlot)) {
+        console.error('❌ [PAYCHANGU-CHECKOUT] Invalid time slot requested:', {
+          date: formData.date,
+          slot: formData.timeSlot,
+          allowed: possibleSlots
+        });
+        return NextResponse.json({
+          message: `The time slot ${formData.timeSlot} is not available for ${formData.date}.`
+        }, { status: 400 });
+      }
+    }
 
     console.log('🚀 [PAYCHANGU-CHECKOUT] Starting payment checkout process:', {
       customerName: formData?.name,
@@ -27,7 +46,7 @@ export async function POST(req: Request) {
 
     // Construct tx_ref unique for every transaction
     const tx_ref = `LLB-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-    
+
     console.log('🆔 [PAYCHANGU-CHECKOUT] Generated transaction reference:', {
       tx_ref,
       timestamp: new Date().toISOString()
@@ -69,7 +88,7 @@ export async function POST(req: Request) {
         status: 'pending',
         timestamp: new Date().toISOString()
       });
-      } else {
+    } else {
       console.log('ℹ️ [PAYCHANGU-CHECKOUT] Booking already exists:', {
         tx_ref,
         bookingId: booking.id,

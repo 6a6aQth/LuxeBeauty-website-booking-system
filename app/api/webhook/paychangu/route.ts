@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { confirmBooking } from '@/lib/booking-service';
 import { createHmac } from 'crypto';
-import { sendBookingSMS } from '@/lib/sms';
-import { logPaymentEvent } from '@/lib/paymentLogger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,20 +23,20 @@ export async function POST(req: NextRequest) {
     // 2. Verify webhook signature for security
     const signature = req.headers.get('signature');
     const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
-    
+
     console.log('🔐 [PAYCHANGU-WEBHOOK] Signature verification:', {
       hasSignature: !!signature,
       hasWebhookSecret: !!webhookSecret,
       timestamp: new Date().toISOString()
     });
-    
+
     if (!webhookSecret) {
       console.error('❌ [PAYCHANGU-WEBHOOK] Configuration error: PAYCHANGU_WEBHOOK_SECRET not configured');
       return NextResponse.json({ error: 'Webhook secret not configured.' }, { status: 500 });
     }
-    
+
     const computedSignature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
-    
+
     // More robust signature verification with detailed logging
     if (!signature) {
       console.error('❌ [PAYCHANGU-WEBHOOK] No signature header received from PayChangu', {
@@ -46,7 +45,7 @@ export async function POST(req: NextRequest) {
       await logPaymentEvent({ txRef: body?.data?.tx_ref ?? 'unknown', eventType: 'webhook_error', message: 'No signature header', payload: { headers: Object.fromEntries(req.headers) } });
       return NextResponse.json({ error: 'No signature header' }, { status: 401 });
     }
-    
+
     if (computedSignature !== signature) {
       console.error('❌ [PAYCHANGU-WEBHOOK] Invalid signature:', {
         expected: computedSignature,
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
     // 3. Check event type and payment status
     const eventType = body.event || body.type;
     const eventData = body.data;
-    
+
     console.log('📋 [PAYCHANGU-WEBHOOK] Event details:', {
       eventType,
       eventDataStatus: eventData?.status,
@@ -83,7 +82,7 @@ export async function POST(req: NextRequest) {
     // 4. Extract booking info from meta or tx_ref
     const meta = eventData?.meta || {};
     const tx_ref = eventData?.tx_ref;
-    
+
     console.log('📊 [PAYCHANGU-WEBHOOK] Payment data extracted:', {
       tx_ref,
       customerName: meta.name,
@@ -138,83 +137,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Booking already successful' }, { status: 200 });
     }
 
-    // Calculate loyalty discount eligibility (consistent with verify-payment logic)
-    // Exclude the current booking from the count since it's not yet marked as successful
-    const existingSuccessfulBookingsCount = await prisma.booking.count({ 
-      where: { 
-        phone: meta.phone, 
-        status: 'successful',
-        // Exclude the current booking from the count
-        NOT: { ticketId: tx_ref }
-      } 
-    });
-    const isEligibleForDiscount = (existingSuccessfulBookingsCount + 1) % 6 === 0;
-    
-    console.log('🎯 [PAYCHANGU-WEBHOOK] Loyalty discount calculation:', {
-      tx_ref,
-      customerPhone: meta.phone,
-      existingSuccessfulBookingsCount,
-      newBookingNumber: existingSuccessfulBookingsCount + 1,
-      isEligibleForDiscount,
-      frontendLoyaltyEligible: meta.loyaltyDiscountEligible,
-      discountLogic: `(${existingSuccessfulBookingsCount} + 1) % 6 === 0`,
-      timestamp: new Date().toISOString()
-    });
-
-    // Update booking status to 'successful'
-    const updatedBooking = await prisma.booking.update({
-      where: { ticketId: tx_ref },
-      data: {
-        status: 'successful',
-        discountApplied: isEligibleForDiscount,
-      },
-    });
-    await logPaymentEvent({ txRef: tx_ref, bookingId: updatedBooking.id, eventType: 'webhook_mark_success', status: 'successful', message: 'Marked booking successful via webhook', payload: eventData });
-
-    console.log('✅ [PAYCHANGU-WEBHOOK] Booking status updated successfully:', {
-      tx_ref,
-      bookingId: updatedBooking.id,
-      oldStatus: existing.status,
-      newStatus: 'successful',
-      discountApplied: updatedBooking.discountApplied,
-      timestamp: new Date().toISOString()
-    });
-
-    // Send SMS confirmation (non-blocking)
+    // Use the unified confirmation service
     try {
-      await sendBookingSMS(
-        meta.phone,
-        `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`
-      );
-      console.log('📱 [PAYCHANGU-WEBHOOK] SMS confirmation sent:', {
-        tx_ref,
-        customerPhone: meta.phone,
-        smsContent: `Thank you for booking with Lauryn Luxe! Your appointment is confirmed for ${meta.date} at ${meta.timeSlot}.`,
-        timestamp: new Date().toISOString()
-      });
-    } catch (smsError: any) {
-      console.error('❌ [PAYCHANGU-WEBHOOK] SMS sending failed:', {
-        tx_ref,
-        customerPhone: meta.phone,
-        smsError: smsError.message,
-        timestamp: new Date().toISOString()
-      });
-      // Don't fail the webhook if SMS fails
+      const updatedBooking = await confirmBooking({ ticketId: tx_ref }, 'webhook');
+      return NextResponse.json({ message: 'Booking updated', booking: updatedBooking }, { status: 200 });
+    } catch (confError: any) {
+      console.error('❌ [PAYCHANGU-WEBHOOK] Confirmation service failed:', confError.message);
+      return NextResponse.json({ error: 'Webhook received but booking update failed' }, { status: 500 });
     }
-
-    console.log('🎉 [PAYCHANGU-WEBHOOK] Webhook processing completed successfully:', {
-      tx_ref,
-      customerName: meta.name,
-      customerPhone: meta.phone,
-      bookingDate: meta.date,
-      bookingTime: meta.timeSlot,
-      paychanguAmount: eventData?.amount,
-      paychanguCurrency: eventData?.currency,
-      finalStatus: 'successful',
-      timestamp: new Date().toISOString()
-    });
-
-    return NextResponse.json({ message: 'Booking updated', booking: updatedBooking }, { status: 200 });
   } catch (error: any) {
     console.error('💥 [PAYCHANGU-WEBHOOK] Unexpected error during webhook processing:', {
       error: error.message,

@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { ShineBorder } from "@/components/ui/shine-border";
 import { WavyBackground } from "@/components/ui/wavy-background";
-import { PlusCircle, Edit, Trash2, Calendar as CalendarIcon, LogOut, Search, UploadCloud, Send, Sun, Moon, Settings, Users, Briefcase, Mail } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Calendar as CalendarIcon, LogOut, Search, UploadCloud, Send, Sun, Moon, Settings, Users, Briefcase, Mail, RefreshCcw, RefreshCw, Image as ImageIcon } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -73,7 +73,7 @@ interface Category {
 interface Booking {
   id: string;
   ticketId: string;
-  name:string;
+  name: string;
   date: string;
   timeSlot: string;
   services: string[];
@@ -125,7 +125,7 @@ export default function AdminPage() {
   const [isDeletingService, setIsDeletingService] = useState<Service | null>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isClient, setIsClient] = useState(false)
-  const [statusFilter, setStatusFilter] = useState('successful') // Add status filter state
+  const [statusFilter, setStatusFilter] = useState('all') // Default to 'all' so pending bookings are visible immediately (Bug #3)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [isDeletingCategory, setIsDeletingCategory] = useState<Category | null>(null)
@@ -149,8 +149,8 @@ export default function AdminPage() {
 
   const allTimeSlots = useMemo(() => generateTimeSlots(true), [])
 
-    const fetchAdminData = async () => {
-      try {
+  const fetchAdminData = async () => {
+    try {
       const [bookingsRes, unavailableRes, servicesRes, priceListRes, categoriesRes] =
         await Promise.all([
           fetch(`/api/bookings?status=${statusFilter}`),
@@ -163,7 +163,7 @@ export default function AdminPage() {
       if (bookingsRes.ok) setBookings(await bookingsRes.json())
       if (unavailableRes.ok) setUnavailableDates(await unavailableRes.json())
       if (servicesRes.ok) setServices(await servicesRes.json())
-      
+
       // Handle categories with better error logging
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json()
@@ -178,7 +178,7 @@ export default function AdminPage() {
           variant: 'destructive',
         })
       }
-      
+
       if (priceListRes.ok) {
         const data = await priceListRes.json()
         setPriceListUrl(data.priceListUrl)
@@ -216,35 +216,46 @@ export default function AdminPage() {
   const handlePriceChange = (id: string, newPrice: string) => {
     const price = parseInt(newPrice, 10);
     if (isNaN(price)) return;
-    setServices(prev => 
-        prev.map(s => s.id === id ? { ...s, price } : s)
+    setServices(prev =>
+      prev.map(s => s.id === id ? { ...s, price } : s)
     );
   };
 
   const handleSaveChanges = async () => {
     setIsSavingPrices(true);
     try {
-        const response = await fetch('/api/services', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ services }),
-        });
+      const response = await fetch('/api/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ services }),
+      });
 
-        if (!response.ok) {
-            throw new Error('Failed to save prices');
-        }
+      if (!response.ok) {
+        throw new Error('Failed to save prices');
+      }
 
-        toast({ title: "Success", description: "Service prices have been updated." });
+      toast({ title: "Success", description: "Service prices have been updated." });
     } catch (error) {
-        toast({ title: "Error", description: "Could not save prices.", variant: "destructive" });
+      toast({ title: "Error", description: "Could not save prices.", variant: "destructive" });
     } finally {
-        setIsSavingPrices(false);
+      setIsSavingPrices(false);
     }
   };
 
   const handleSavePriceList = async () => {
     if (!priceListFile) {
       toast({ title: "No file selected", description: "Please select an image to upload.", variant: "destructive" });
+      return;
+    }
+
+    // Bug #2 Fix: Add client-side file size validation (Vercel Blob limit is 4.5MB for free tier)
+    const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB
+    if (priceListFile.size > MAX_FILE_SIZE) {
+      toast({
+        title: "File too large",
+        description: `The image is too large (${(priceListFile.size / (1024 * 1024)).toFixed(1)}MB). Please upload an image smaller than 4.5MB.`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -330,19 +341,19 @@ export default function AdminPage() {
       return parseTime(a.timeSlot) - parseTime(b.timeSlot);
     });
   }, [bookings, searchTerm, showAll, statusFilter]);
-  
+
   const weeklyCapacity = useMemo(() => {
     const today = new Date();
     const next7Days = addDays(today, 7);
     today.setHours(0, 0, 0, 0);
-    
+
     const bookingsInNext7Days = bookings.filter(b => {
       try {
-            const bookingDate = parseISO(b.date);
-            // Only count successful bookings for capacity calculation
-            return isValid(bookingDate) && 
-                   isWithinInterval(bookingDate, { start: today, end: next7Days }) &&
-                   b.status === 'successful';
+        const bookingDate = parseISO(b.date);
+        // Only count successful bookings for capacity calculation
+        return isValid(bookingDate) &&
+          isWithinInterval(bookingDate, { start: today, end: next7Days }) &&
+          b.status === 'successful';
       } catch {
         return false;
       }
@@ -352,7 +363,7 @@ export default function AdminPage() {
     const bookedSlots = bookingsInNext7Days.length;
 
     if (totalSlotsInNext7Days === 0) {
-        return { count: 0, percentage: 0 };
+      return { count: 0, percentage: 0 };
     }
 
     const percentage = (bookedSlots / totalSlotsInNext7Days) * 100;
@@ -390,7 +401,7 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error('Failed to update availability');
       }
-      
+
       const updatedUnavailableDate = await response.json();
       setUnavailableDates(prev => {
         const existingIndex = prev.findIndex(u => u.date === updatedUnavailableDate.date);
@@ -455,8 +466,8 @@ export default function AdminPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     // Working days are Mon-Sat. Block clicks only on past dates and Sundays.
-    if (date < today || date.getDay() === 0 ) {
-      return; 
+    if (date < today || date.getDay() === 0) {
+      return;
     }
     setSelectedDate(date);
     const dateString = date.toISOString().split('T')[0];
@@ -614,6 +625,37 @@ export default function AdminPage() {
     }
   };
 
+  const handleReverifyPayment = async (booking: Booking) => {
+    try {
+      const response = await fetch('/api/admin/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tx_ref: booking.ticketId,
+          adminPassword: ADMIN_PASSWORD // Using the local constant for now
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Verification failed');
+      }
+
+      toast({
+        title: 'Verification Complete',
+        description: `Status updated to: ${data.booking.status}`,
+      });
+      fetchAdminData();
+    } catch (error: any) {
+      toast({
+        title: 'Verification Error',
+        description: error.message || 'Could not verify payment with PayChangu.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleSaveBooking = async () => {
     if (!editingBookingData || !isEditingBooking) {
       console.error('Missing booking data or editing state');
@@ -705,7 +747,7 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error(
           data.error ||
-            "Failed to delete category. Make sure no services are using it."
+          "Failed to delete category. Make sure no services are using it."
         );
       }
 
@@ -748,13 +790,13 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="p-0">
             <form onSubmit={handleLogin} className="space-y-4 pt-4">
-                <Input
-                  type="password"
+              <Input
+                type="password"
                 placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="rounded-lg text-center bg-gray-100 dark:bg-gray-800"
-                />
+              />
               <Button type="submit" className="w-full bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors">
                 Login
               </Button>
@@ -775,20 +817,20 @@ export default function AdminPage() {
         </Button>
       </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
           <Card className="rounded-2xl shadow-soft overflow-hidden">
             <CardHeader>
-              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Briefcase/> Upcoming Bookings</CardTitle>
+              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Briefcase /> Upcoming Bookings</CardTitle>
               <div className="flex items-center space-x-2 mb-4">
-                <Button 
+                <Button
                   variant={view === 'all' ? 'default' : 'outline'}
                   onClick={() => setView('all')}
                   className={view === 'all' ? 'bg-brand-pink text-white hover:bg-brand-pink/90' : 'text-gray-700 hover:bg-gray-100'}
                 >
                   All Bookings
                 </Button>
-                <Button 
+                <Button
                   variant={view === 'upcoming' ? 'default' : 'outline'}
                   onClick={() => setView('upcoming')}
                   className={view === 'upcoming' ? 'bg-brand-pink text-white hover:bg-brand-pink/90' : 'text-gray-700 hover:bg-gray-100'}
@@ -809,8 +851,8 @@ export default function AdminPage() {
               </div>
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input 
-                  placeholder="Search bookings..." 
+                <Input
+                  placeholder="Search bookings..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 rounded-lg"
@@ -823,7 +865,7 @@ export default function AdminPage() {
                   {filteredBookings.length > 0 ? filteredBookings.map(booking => (
                     <div key={booking.id} className="p-4 bg-gray-100 rounded-xl space-y-3">
                       <div className="flex justify-between items-start">
-                <div>
+                        <div>
                           <p className="font-bold text-lg">{booking.name}</p>
                           <div className="flex gap-2 mt-1 flex-wrap">
                             {booking.discountApplied && (
@@ -835,7 +877,7 @@ export default function AdminPage() {
                               </Badge>
                             )}
                           </div>
-                </div>
+                        </div>
                         <div className="text-right flex-shrink-0">
                           <p className="font-semibold">{format(parseISO(booking.date), 'EEE, MMM d')}</p>
                           <p className="text-sm text-brand-pink font-medium">{booking.timeSlot}</p>
@@ -890,14 +932,23 @@ export default function AdminPage() {
                         >
                           <Edit className="mr-2 h-4 w-4" /> Edit Details
                         </Button>
-                          {booking.status === 'pending' && (
+                        {booking.status === 'pending' && (
+                          <div className="flex flex-col gap-2 flex-1">
                             <Button
-                              className="flex-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                              className="w-full bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                               onClick={() => handleMarkSuccessful(booking)}
                             >
                               Mark Successful
                             </Button>
-                          )}
+                            <Button
+                              variant="outline"
+                              className="w-full border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-xs"
+                              onClick={() => handleReverifyPayment(booking)}
+                            >
+                              <RefreshCcw className="mr-1 h-3 w-3" /> Re-verify with PayChangu
+                            </Button>
+                          </div>
+                        )}
                         <Button
                           variant="destructive"
                           className="flex-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -912,10 +963,10 @@ export default function AdminPage() {
               </ScrollArea>
             </CardContent>
           </Card>
-          
+
           <Card className="rounded-2xl shadow-soft">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Settings/> Manage Services & Categories</CardTitle>
+              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Settings /> Manage Services & Categories</CardTitle>
               {manageServicesTab === 'services' ? (
                 <Button onClick={() => handleOpenServiceModal(null)} className="bg-brand-pink text-white rounded-lg hover:bg-brand-pink/90 transition-colors flex items-center gap-2 self-end sm:self-center">
                   <PlusCircle className="w-5 h-5" />
@@ -940,92 +991,92 @@ export default function AdminPage() {
                   <TabsTrigger value="services">Services</TabsTrigger>
                   <TabsTrigger value="categories">Categories</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="services" className="mt-0">
-              {isMobile ? (
-                <div className="mb-4">
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Filter by category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="capitalize">
+                  {isMobile ? (
+                    <div className="mb-4">
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Filter by category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat} className="capitalize">
+                              {cat.replace('-', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mb-4 border-b overflow-x-auto pb-2">
+                      {serviceCategories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setCategoryFilter(cat)}
+                          className={`capitalize pb-2 text-sm font-medium transition-colors whitespace-nowrap ${categoryFilter === cat ? 'text-brand-pink border-b-2 border-brand-pink' : 'text-gray-500 hover:text-gray-800'}`}
+                        >
                           {cat.replace('-', ' ')}
-                        </SelectItem>
+                        </button>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 mb-4 border-b overflow-x-auto pb-2">
-                  {serviceCategories.map(cat => (
-                    <button 
-                      key={cat}
-                      onClick={() => setCategoryFilter(cat)}
-                      className={`capitalize pb-2 text-sm font-medium transition-colors whitespace-nowrap ${categoryFilter === cat ? 'text-brand-pink border-b-2 border-brand-pink' : 'text-gray-500 hover:text-gray-800'}`}
-                    >
-                      {cat.replace('-', ' ')}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <ScrollArea className="h-[400px]">
-                {isMobile ? (
-                  <Accordion type="single" collapsible className="w-full">
-                    {filteredServices.map(service => (
-                      <AccordionItem value={service.id} key={service.id}>
-                        <AccordionTrigger className="p-3 bg-gray-100 rounded-xl">
-                          <span className="font-semibold text-left">{service.name}</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-3 bg-gray-50 rounded-b-xl">
-                          <p className="text-sm text-gray-600 mb-4">{service.description || 'No description.'}</p>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor={`switch-${service.id}`} className="flex items-center gap-2 text-sm font-medium">
+                    </div>
+                  )}
+                  <ScrollArea className="h-[400px]">
+                    {isMobile ? (
+                      <Accordion type="single" collapsible className="w-full">
+                        {filteredServices.map(service => (
+                          <AccordionItem value={service.id} key={service.id}>
+                            <AccordionTrigger className="p-3 bg-gray-100 rounded-xl">
+                              <span className="font-semibold text-left">{service.name}</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-3 bg-gray-50 rounded-b-xl">
+                              <p className="text-sm text-gray-600 mb-4">{service.description || 'No description.'}</p>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor={`switch-${service.id}`} className="flex items-center gap-2 text-sm font-medium">
+                                  <Switch
+                                    id={`switch-${service.id}`}
+                                    checked={service.isAvailable}
+                                    onCheckedChange={() => handleToggleServiceAvailability(service)}
+                                  />
+                                  Service Available
+                                </Label>
+                                <Button variant="outline" size="sm" onClick={() => handleOpenServiceModal(service)} className="flex items-center gap-2">
+                                  <Edit className="w-4 h-4" />
+                                  Edit
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    ) : (
+                      <div className="space-y-3 pr-4">
+                        {filteredServices.map(service => (
+                          <div key={service.id} className="flex items-center justify-between p-3 bg-gray-100 rounded-xl gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold truncate">{service.name}</p>
+                              {service.description && (
+                                <p className="text-sm text-gray-500 truncate" title={service.description}>
+                                  {service.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                               <Switch
-                                id={`switch-${service.id}`}
                                 checked={service.isAvailable}
                                 onCheckedChange={() => handleToggleServiceAvailability(service)}
                               />
-                              Service Available
-                            </Label>
-                            <Button variant="outline" size="sm" onClick={() => handleOpenServiceModal(service)} className="flex items-center gap-2">
-                              <Edit className="w-4 h-4" />
-                              Edit
-                            </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenServiceModal(service)} className="text-gray-500 hover:text-blue-500 rounded-full">
+                                <Edit className="w-5 h-5" />
+                              </Button>
+                            </div>
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                ) : (
-                  <div className="space-y-3 pr-4">
-                    {filteredServices.map(service => (
-                      <div key={service.id} className="flex items-center justify-between p-3 bg-gray-100 rounded-xl gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{service.name}</p>
-                          {service.description && (
-                            <p className="text-sm text-gray-500 truncate" title={service.description}>
-                              {service.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                          <Switch
-                            checked={service.isAvailable}
-                            onCheckedChange={() => handleToggleServiceAvailability(service)}
-                          />
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenServiceModal(service)} className="text-gray-500 hover:text-blue-500 rounded-full">
-                            <Edit className="w-5 h-5" />
-                          </Button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-                </ScrollArea>
+                    )}
+                  </ScrollArea>
                 </TabsContent>
-                
+
                 <TabsContent value="categories" className="mt-0">
                   {categories.length === 0 ? (
                     <div className="text-center py-12">
@@ -1100,34 +1151,34 @@ export default function AdminPage() {
         <div className="space-y-8">
 
           <Card className="rounded-2xl shadow-soft">
-              <CardHeader>
+            <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><CalendarIcon /> Availability</CardTitle>
               <CardDescription>Click a date to manage time slots.</CardDescription>
-              </CardHeader>
+            </CardHeader>
             <CardContent className="flex justify-center">
               <Calendar
                 mode="single"
-                  selected={selectedDate}
+                selected={selectedDate}
                 onSelect={date => date && handleDateClick(date)}
                 disabled={{ before: new Date() }}
                 className="rounded-lg"
-                />
-              </CardContent>
-            </Card>
+              />
+            </CardContent>
+          </Card>
 
           <Card className="rounded-2xl shadow-soft">
-              <CardHeader>
-              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Mail/> Newsletter</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <NewsletterForm />
-              </CardContent>
-            </Card>
+            <CardHeader>
+              <CardTitle className="font-serif text-2xl flex items-center gap-2"><Mail /> Newsletter</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NewsletterForm />
+            </CardContent>
+          </Card>
 
           <Card className="rounded-2xl shadow-soft">
-              <CardHeader>
+            <CardHeader>
               <CardTitle className="font-serif text-2xl flex items-center gap-2"><UploadCloud /> Price List</CardTitle>
-              </CardHeader>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 border rounded-lg">
                 <input
@@ -1176,19 +1227,19 @@ export default function AdminPage() {
           </Card>
 
           <Card className="rounded-2xl shadow-soft">
-              <CardHeader>
+            <CardHeader>
               <CardTitle className="font-serif text-xl">Next 7 Days Capacity</CardTitle>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-600">{weeklyCapacity.count} Bookings</span>
                 <span className="text-sm font-medium text-gray-600">{Math.round(weeklyCapacity.percentage)}% full</span>
-                              </div>
+              </div>
               <Progress value={weeklyCapacity.percentage} className="w-full" />
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
         </div>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent key={selectedDate?.toISOString() || 'default'} className="rounded-2xl">
@@ -1198,18 +1249,18 @@ export default function AdminPage() {
           </DialogHeader>
 
           {bookingsForSelectedDate.length > 0 && (
-              <div className="py-2">
-                <h4 className="font-semibold mb-2 text-sm text-gray-700">Bookings for this date:</h4>
-                <ScrollArea className="h-[100px] rounded-md border p-2 bg-gray-50">
-                  <div className="space-y-2">
-                    {bookingsForSelectedDate.map(booking => (
-                      <div key={booking.id} className="text-sm">
-                                 <strong>{booking.timeSlot}:</strong> {booking.name} ({Array.isArray(booking.services) ? getServiceNames(booking.services).join(', ') : ''})
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+            <div className="py-2">
+              <h4 className="font-semibold mb-2 text-sm text-gray-700">Bookings for this date:</h4>
+              <ScrollArea className="h-[100px] rounded-md border p-2 bg-gray-50">
+                <div className="space-y-2">
+                  {bookingsForSelectedDate.map(booking => (
+                    <div key={booking.id} className="text-sm">
+                      <strong>{booking.timeSlot}:</strong> {booking.name} ({Array.isArray(booking.services) ? getServiceNames(booking.services).join(', ') : ''})
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           )}
 
           <div className="space-y-3">
@@ -1250,15 +1301,15 @@ export default function AdminPage() {
             <DialogTitle className="font-serif text-2xl">{editingService?.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Input placeholder="Service Name" value={editingService?.name || ''} onChange={(e) => setEditingService(s => s ? {...s, name: e.target.value} : null)} />
-            <Textarea placeholder="Description" value={editingService?.description || ''} onChange={(e) => setEditingService(s => s ? {...s, description: e.target.value} : null)} />
+            <Input placeholder="Service Name" value={editingService?.name || ''} onChange={(e) => setEditingService(s => s ? { ...s, name: e.target.value } : null)} />
+            <Textarea placeholder="Description" value={editingService?.description || ''} onChange={(e) => setEditingService(s => s ? { ...s, description: e.target.value } : null)} />
             <Input
               type="number"
               placeholder="Duration (minutes)"
               value={editingService?.duration || ''}
               onChange={(e) => {
                 const value = parseInt(e.target.value, 10);
-                setEditingService(s => s ? {...s, duration: isNaN(value) ? 0 : value} : null)
+                setEditingService(s => s ? { ...s, duration: isNaN(value) ? 0 : value } : null)
               }}
             />
             <div className="space-y-2">
@@ -1295,12 +1346,12 @@ export default function AdminPage() {
           </div>
           <DialogFooter className="sm:justify-between">
             {editingService?.id && (
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={() => {
                   setIsDeletingService(editingService)
                   setIsServiceModalOpen(false)
-                }} 
+                }}
                 className="bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
                 Delete Service

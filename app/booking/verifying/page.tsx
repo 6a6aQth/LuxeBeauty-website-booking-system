@@ -23,10 +23,10 @@ const failStates = [
 function VerifyingPayment() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'success' | 'failed' | 'delayed'>('verifying');
   const [errorMessage, setErrorMessage] = useState('');
   const [loaderStep, setLoaderStep] = useState(0);
-  const [finalStatus, setFinalStatus] = useState<'success' | 'failed' | null>(null);
+  const [finalStatus, setFinalStatus] = useState<'success' | 'failed' | 'delayed' | null>(null);
   const [showLoader, setShowLoader] = useState(true);
   const [loaderStates, setLoaderStates] = useState(successStates);
 
@@ -45,7 +45,6 @@ function VerifyingPayment() {
         if (finalStatus === 'success') {
           router.push('/booking/confirmation');
         }
-        // If failed, error UI will show below
       }, 1200);
     }
   }, [loaderStep, showLoader, finalStatus, router, loaderStates.length]);
@@ -72,7 +71,7 @@ function VerifyingPayment() {
       return;
     }
 
-    let formData;
+    let formData: any;
     try {
       formData = JSON.parse(storedFormData);
     } catch (error) {
@@ -96,52 +95,98 @@ function VerifyingPayment() {
           });
 
           if (verificationRes.status === 202) {
-            // Still processing, wait and retry
-            console.log(`[VERIFY-PAGE] Payment still processing, attempt ${attempt}/${maxRetries}...`);
+            console.log(`[VERIFY-PAGE] Still processing, attempt ${attempt}/${maxRetries}...`);
             await new Promise(resolve => setTimeout(resolve, pollingInterval));
             continue;
           }
 
           if (!verificationRes.ok) {
             const errorData = await verificationRes.json();
-            throw new Error(errorData.error || 'Payment verification failed on the server.');
+            throw new Error(errorData.error || 'Payment verification failed.');
           }
 
           const newBooking = await verificationRes.json();
-          const bookingDetails = {
+          sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify({
             ...newBooking,
-            fee: "K10,000 (Paid)", // Adjusted amount
-          };
+            fee: "K10,000 (Paid)",
+          }));
 
-          // Save final details for the confirmation page
-          sessionStorage.setItem('lauryn-luxe-booking', JSON.stringify(bookingDetails));
           setLoaderStates(successStates);
           setFinalStatus('success');
           setStatus('success');
-          return; // Exit successfully
+          return;
         } catch (error: any) {
-          // If it's the last attempt or an explicit error error
           if (attempt === maxRetries || error.message.includes('failed') || error.message.includes('expired')) {
-            setErrorMessage(error.message || 'An unknown error occurred during verification.');
-            setLoaderStates(failStates);
-            setFinalStatus('failed');
-            setStatus('failed');
+            if (attempt === maxRetries && !error.message.includes('failed')) {
+              setFinalStatus('delayed');
+              setStatus('delayed');
+              setShowLoader(false);
+              toast({
+                title: "Verification taking longer than expected",
+                description: "Your payment may still be processing. Please don't worry.",
+                variant: "destructive",
+              });
+            } else {
+              setErrorMessage(error.message || 'Verification failed.');
+              setLoaderStates(failStates);
+              setFinalStatus('failed');
+              setStatus('failed');
+            }
             return;
           }
-          // For other errors, wait and retry
           await new Promise(resolve => setTimeout(resolve, pollingInterval));
         }
       }
-
-      // If we exhausted retries
-      setErrorMessage('Verification timed out. If you were debited, your booking will be confirmed automatically via webhook within a few minutes.');
-      setLoaderStates(failStates);
-      setFinalStatus('failed');
-      setStatus('failed');
     };
 
     verifyPaymentAndCreateBooking();
-  }, [searchParams]);
+  }, [searchParams, router]);
+
+  const tx_ref = searchParams.get('tx_ref');
+
+  if (status === 'delayed') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center max-w-2xl mx-auto bg-white rounded-3xl shadow-xl border border-gray-100 mt-10">
+        <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-6">
+          <Loader2 className="h-10 w-10 text-amber-500 animate-spin" />
+        </div>
+        <h1 className="text-3xl font-serif text-gray-900 mb-4">Verification Delayed</h1>
+        <div className="space-y-6 w-full">
+          <p className="text-gray-600 leading-relaxed">
+            Your payment has been initiated, but we're still waiting for final confirmation from PayChangu.
+            <strong> Please do not pay again.</strong>
+          </p>
+
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Your Ticket ID</p>
+            <p className="text-2xl font-mono font-bold text-black select-all break-all">{tx_ref}</p>
+          </div>
+
+          <div className="space-y-4 text-left bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+            <p className="text-sm font-semibold text-blue-900">Next Steps:</p>
+            <ul className="text-sm text-blue-800/80 space-y-2 list-disc pl-5">
+              <li>Keep this page open or save your Ticket ID.</li>
+              <li>Check your SMS/WhatsApp in a few minutes for your confirmation ticket.</li>
+              <li>If you don't receive a ticket within 30 minutes, message us with your Ticket ID.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full mt-10">
+          <Link href="/contact" className="flex-1">
+            <Button variant="outline" className="w-full border-gray-200 rounded-full py-6">
+              Contact Support
+            </Button>
+          </Link>
+          <Link href="/" className="flex-1">
+            <Button className="w-full bg-black text-white rounded-full py-6 hover:bg-black/80 shadow-lg">
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4 text-center">
@@ -152,21 +197,12 @@ function VerifyingPayment() {
         loop={false}
         value={loaderStep}
       />
-      {/* Show nothing else while loader is animating */}
       {!showLoader && status === 'failed' && (
         <div className="flex flex-col items-center justify-center w-full mt-4">
-          {/* Error animation */}
-          <img
-            src="/error.gif"
-            alt="Error animation"
-            style={{ width: 180, height: 180, margin: '0 auto' }}
-            className="mb-2"
-          />
-          <h1 className="text-2xl font-bold mb-4" style={{ color: '#E11D48' }}>
-            Payment Not Successful
-          </h1>
-          <p className="text-gray-700 mb-6">{errorMessage || 'Your payment could not be verified. Please try booking again.'}</p>
-          <Button asChild>
+          <img src="/error.gif" alt="Error" style={{ width: 180, height: 180 }} className="mb-2" />
+          <h1 className="text-2xl font-bold mb-4 text-red-600">Payment Not Successful</h1>
+          <p className="text-gray-700 mb-6 max-w-md">{errorMessage || 'Your payment could not be verified. Please try booking again.'}</p>
+          <Button asChild className="rounded-full px-8">
             <Link href="/booking">Try Booking Again</Link>
           </Button>
         </div>
@@ -175,7 +211,6 @@ function VerifyingPayment() {
   );
 }
 
-// The main page export provides the Suspense boundary
 export default function VerifyingPaymentPage() {
   return (
     <Suspense fallback={
@@ -187,4 +222,4 @@ export default function VerifyingPaymentPage() {
       <VerifyingPayment />
     </Suspense>
   )
-} 
+}

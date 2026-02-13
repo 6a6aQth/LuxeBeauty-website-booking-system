@@ -26,31 +26,39 @@ export function generateTimeSlots(includeWeekends: boolean): string[] {
   if (includeWeekends) {
     timeSlots.saturday.forEach(slot => allSlots.add(slot));
   }
-  
+
   return Array.from(allSlots).sort();
 }
 
 export function getSlotsForDate(date: Date): string[] {
-  const dayOfWeek = date.getDay(); // Sunday = 0, Monday = 1, etc.
+  // Use Intl.DateTimeFormat to get the day of week specifically in Malawi's timezone (UTC+2)
+  // this ensures that '2026-02-13' (Friday) is always evaluated as Friday, even if the server
+  // is running in a different timezone (e.g. UTC-5).
+  // weekday: 'long' returns 'Monday', 'Tuesday', etc.
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    timeZone: 'Africa/Blantyre',
+  });
+  const dayName = formatter.format(date);
 
-  if (dayOfWeek >= 1 && dayOfWeek <= 4) { // Monday to Thursday
+  if (['Monday', 'Tuesday', 'Wednesday', 'Thursday'].includes(dayName)) {
     return timeSlots.monday_thursday;
   }
-  if (dayOfWeek === 5) { // Friday
+  if (dayName === 'Friday') {
     return timeSlots.friday;
   }
-  if (dayOfWeek === 6) { // Saturday
+  if (dayName === 'Saturday') {
     return timeSlots.saturday;
   }
-  return []; // Sunday or invalid date
+  return []; // Sunday or invalid
 }
 
 export function formatTime(time: string): string {
-    const [hour, minute] = time.split(':');
-    const h = parseInt(hour, 10);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12; // convert 0 to 12
-    return `${h12}:${minute} ${suffix}`;
+  const [hour, minute] = time.split(':');
+  const h = parseInt(hour, 10);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12; // convert 0 to 12
+  return `${h12}:${minute} ${suffix}`;
 }
 
 export function serviceLabel(value: string, allServices: { id: string; name: string }[]): string {

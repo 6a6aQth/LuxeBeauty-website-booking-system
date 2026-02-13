@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { confirmBooking } from '@/lib/booking-service';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
@@ -65,7 +66,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (notes !== undefined) updateData.notes = notes;
     if (discountApplied !== undefined) updateData.discountApplied = discountApplied;
     if (Array.isArray(inspirationPhotos)) updateData.inspirationPhotos = inspirationPhotos;
-    if (status) updateData.status = status;
+    if (status) {
+      // If updating to successful, use the unified service to ensure side-effects (SMS, loyalty)
+      if (status === 'successful') {
+        const updated = await confirmBooking({ id }, 'admin');
+        return NextResponse.json(updated, { status: 200 });
+      }
+      updateData.status = status;
+    }
 
     const updated = await prisma.booking.update({
       where: { id },
