@@ -80,7 +80,7 @@ export function BookingForm({
       prevServices.current = formData.services;
       return;
     }
-    if (!services || services.length === 0) return;
+    if (!Array.isArray(services) || services.length === 0) return;
     setFormData((prev: any) => {
       const stillAvailable = prev.services.filter((id: string) =>
         services.some((s) => s.id === id && s.isAvailable)
@@ -140,14 +140,14 @@ export function BookingForm({
     if (categoriesFromApi && Array.isArray(categoriesFromApi) && categoriesFromApi.length > 0) {
       return categoriesFromApi.map((c: any) => c.name as string);
     }
-    if (services.length === 0) return [];
-    const cats = services.map((s) => s.category);
+    if (!Array.isArray(services) || services.length === 0) return [];
+    const cats = services.map((s: any) => s.category);
     return Array.from(new Set(cats));
   }, [categoriesFromApi, services]);
 
   const filteredServices = React.useMemo(() => {
-    if (!selectedCategory) return [];
-    return services.filter((s) => s.category === selectedCategory);
+    if (!selectedCategory || !Array.isArray(services)) return [];
+    return services.filter((s: any) => s.category === selectedCategory);
   }, [services, selectedCategory]);
 
   const handleChange = (e: any) => {
@@ -212,11 +212,11 @@ export function BookingForm({
               <div className="space-y-3 text-lg font-light">
                 <div className="flex justify-between border-b border-gray-400 py-2">
                   <span>Mon - Thu</span>
-                  <span>8:30 - 16:30</span>
+                  <span>10:00 - 16:30</span>
                 </div>
                 <div className="flex justify-between border-b border-gray-400 py-2">
                   <span>Friday</span>
-                  <span>8:30 - 15:00</span>
+                  <span>10:00 - 15:00</span>
                 </div>
                 <div className="flex justify-between border-b border-gray-400 py-2">
                   <span>Saturday</span>
@@ -345,8 +345,8 @@ export function BookingForm({
                                   service.id
                                 )
                                   ? formData.services.filter(
-                                      (s: any) => s !== service.id
-                                    )
+                                    (s: any) => s !== service.id
+                                  )
                                   : [...formData.services, service.id];
                                 setFormData((prev: any) => ({
                                   ...prev,
@@ -437,7 +437,7 @@ export function BookingForm({
                             initialFocus
                             disabled={(d) => {
                               const today = new Date();
-                              today.setHours(0,0,0,0);
+                              today.setHours(0, 0, 0, 0);
                               const tomorrow = new Date(today);
                               tomorrow.setDate(today.getDate() + 1);
                               return d < tomorrow || fullyBookedDates.some(

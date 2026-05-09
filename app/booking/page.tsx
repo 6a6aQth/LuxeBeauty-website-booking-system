@@ -198,21 +198,25 @@ function BookingContent() {
 
   const unavailableSlots = useMemo(() => {
     const transformed: Record<string, string[]> = {};
-    unavailableDatesData.forEach((item: any) => {
-      transformed[item.date] = item.timeSlots;
-    });
+    if (Array.isArray(unavailableDatesData)) {
+      unavailableDatesData.forEach((item: any) => {
+        transformed[item.date] = item.timeSlots;
+      });
+    }
     return transformed;
   }, [unavailableDatesData]);
 
   const bookedSlots = useMemo(() => {
     const slots: Record<string, string[]> = {};
-    bookingsData.forEach((booking: any) => {
-      // Only count successful bookings for slot availability
-      if (booking.status === 'successful') {
-        if (!slots[booking.date]) slots[booking.date] = [];
-        slots[booking.date].push(booking.timeSlot);
-      }
-    });
+    if (Array.isArray(bookingsData)) {
+      bookingsData.forEach((booking: any) => {
+        // Only count successful bookings for slot availability
+        if (booking.status === 'successful') {
+          if (!slots[booking.date]) slots[booking.date] = [];
+          slots[booking.date].push(booking.timeSlot);
+        }
+      });
+    }
     return slots;
   }, [bookingsData]);
 
@@ -222,10 +226,10 @@ function BookingContent() {
     const allPossibleSlots = getSlotsForDate(date);
     const bookedSlotsForDate = bookedSlots[dateStr] || [];
     const unavailableSlotsForDate = unavailableSlots[dateStr] || [];
-    
+
     // Return only slots that are not booked and not manually unavailable
-    return allPossibleSlots.filter(slot => 
-      !bookedSlotsForDate.includes(slot) && 
+    return allPossibleSlots.filter(slot =>
+      !bookedSlotsForDate.includes(slot) &&
       !unavailableSlotsForDate.includes(slot)
     );
   }, [date, bookedSlots, unavailableSlots]);
@@ -247,10 +251,10 @@ function BookingContent() {
       const allPossibleSlots = getSlotsForDate(parseISO(dateStr));
       if (allPossibleSlots.length === 0) continue;
 
-      const isMorningBlocked = allPossibleSlots.every(slot => 
+      const isMorningBlocked = allPossibleSlots.every(slot =>
         (bookedSlots[dateStr]?.includes(slot)) || (unavailableSlots[dateStr]?.includes(slot))
       );
-      
+
       if (isMorningBlocked) {
         const d = parseISO(dateStr);
         if (isValid(d)) {
@@ -258,7 +262,7 @@ function BookingContent() {
         }
       }
     }
-    
+
     return fullyBlockedDates;
   }, [bookedSlots, unavailableSlots]);
 
@@ -314,6 +318,14 @@ function BookingContent() {
     // Real-time verification: fetch latest services and check availability
     const res = await fetch('/api/services');
     const services = await res.json();
+    if (!Array.isArray(services)) {
+      toast({
+        title: 'Connection Error',
+        description: 'Could not communicate with the server to verify your booking at this time. Please try again later.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const unavailable = formData.services.filter(
       (id: string) => !services.some((s: any) => s.id === id && s.isAvailable)
     );
@@ -430,7 +442,7 @@ function BookingContent() {
   const handleFileChange = async (files: File[]) => {
     if (files.length === 0) return;
     const file = files[0];
-    
+
     toast({ title: "Uploading...", description: "Your inspiration photo is being uploaded." });
 
     try {
@@ -451,7 +463,7 @@ function BookingContent() {
         ...prev,
         inspirationPhotos: [...prev.inspirationPhotos, newBlob.url],
       }));
-      
+
       toast({ title: "Success!", description: "Photo uploaded successfully." });
 
     } catch (error) {
